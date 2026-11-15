@@ -1,0 +1,168 @@
+    <div class="page-container">
+      <!-- Header -->
+      <div class="page-header">
+        <div>
+          <div class="damira-breadcrumb">
+            <a routerLink="/dashboard">Dashboard</a>
+            <span class="separator">/</span>
+            <span>Company Management</span>
+            <span class="separator">/</span>
+            <span class="current">User Accounts</span>
+          </div>
+          <h1 class="page-title">Internal User Accounts</h1>
+          <p class="page-sub">Security administration, account lockouts, role assignments, and credential resets.</p>
+        </div>
+      </div>
+
+      <!-- Password Reset Notification Modal -->
+      <div class="modal-backdrop" *ngIf="resetResult()">
+        <div class="modal-card">
+          <div class="modal-badge-info">
+            <span class="material-icons-round">lock_reset</span>
+          </div>
+          <h2 class="modal-title">Password Reset Successful</h2>
+          <p class="modal-sub">
+            A temporary password has been generated for <strong>{{ resetResult()?.username }}</strong>:
+          </p>
+          <div class="password-box">
+            <code>{{ resetResult()?.temporaryPassword }}</code>
+          </div>
+          <p class="modal-hint">
+            * The user's active sessions have been revoked. They will be required to change this password on next login.
+          </p>
+          <button class="btn-primary" (click)="resetResult.set(null)">Done</button>
+        </div>
+      </div>
+
+      <!-- Filter Toolbar -->
+      <div class="filter-toolbar">
+        <div class="search-box">
+          <span class="material-icons-round search-icon">search</span>
+          <input
+            type="text"
+            [(ngModel)]="searchQuery"
+            (keyup.enter)="loadUsers()"
+            placeholder="Search by username, email, or employee name..."
+            class="search-input"
+          />
+        </div>
+
+        <div class="filter-controls">
+          <select [(ngModel)]="statusFilter" (change)="loadUsers()" class="filter-select">
+            <option value="">All Account Statuses</option>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+            <option value="LOCKED">Locked</option>
+          </select>
+          <button (click)="loadUsers()" class="refresh-btn" title="Refresh">
+            <span class="material-icons-round">refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="isLoading()">
+        <mat-spinner diameter="36"></mat-spinner>
+        <span>Loading accounts...</span>
+      </div>
+
+      <!-- Users Table -->
+      <div class="damira-table-container" *ngIf="!isLoading()">
+        <table>
+          <thead>
+            <tr>
+              <th>Account Username</th>
+              <th>Linked Employee</th>
+              <th>Assigned Roles</th>
+              <th>Status</th>
+              <th>Failed Attempts</th>
+              <th>Last Login</th>
+              <th style="text-align: right;">Security Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of users()">
+              <!-- Username -->
+              <td>
+                <div class="username-cell">
+                  <span class="material-icons-round user-icon">account_circle</span>
+                  <div class="user-text">
+                    <span class="username">{{ user.username }}</span>
+                    <span class="email">{{ user.email }}</span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Employee -->
+              <td>
+                <div class="emp-cell">
+                  <span class="emp-name">{{ user.fullName }}</span>
+                  <span class="emp-code">{{ user.employeeCode }}</span>
+                </div>
+              </td>
+
+              <!-- Roles -->
+              <td>
+                <div class="roles-wrap">
+                  <span *ngFor="let role of user.roles" class="role-badge">
+                    {{ role.name }}
+                  </span>
+                </div>
+              </td>
+
+              <!-- Status -->
+              <td>
+                <span class="status-badge" [ngClass]="'status-' + user.status.toLowerCase()">
+                  {{ user.status }}
+                </span>
+              </td>
+
+              <!-- Failed attempts -->
+              <td>
+                <span class="attempts-tag" [class.danger]="user.failedLoginAttempts > 0">
+                  {{ user.failedLoginAttempts }} / 5
+                </span>
+              </td>
+
+              <!-- Last Login -->
+              <td>
+                <span class="last-login">{{ user.lastLoginAt ? (user.lastLoginAt | date: 'dd MMM yyyy, hh:mm a') : 'Never' }}</span>
+              </td>
+
+              <!-- Actions -->
+              <td style="text-align: right;">
+                <button [matMenuTriggerFor]="userMenu" class="action-icon-btn">
+                  <span class="material-icons-round">more_vert</span>
+                </button>
+                <mat-menu #userMenu="matMenu" xPosition="before">
+                  <button
+                    *hasPermission="['USERS', 'MANAGE']"
+                    mat-menu-item
+                    (click)="resetPassword(user)"
+                  >
+                    <span class="material-icons-round">key</span>
+                    <span>Reset Password</span>
+                  </button>
+                  <button
+                    *hasPermission="['USERS', 'MANAGE']"
+                    mat-menu-item
+                    (click)="toggleUserStatus(user)"
+                  >
+                    <span class="material-icons-round">power_settings_new</span>
+                    <span>{{ user.status === 'ACTIVE' ? 'Deactivate Account' : 'Activate Account' }}</span>
+                  </button>
+                </mat-menu>
+              </td>
+            </tr>
+
+            <tr *ngIf="users().length === 0">
+              <td colspan="7" class="empty-state">
+                <span class="material-icons-round empty-icon">manage_accounts</span>
+                <h3>No user accounts found</h3>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  

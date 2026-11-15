@@ -1,0 +1,283 @@
+    <div class="import-page-container">
+      <!-- Breadcrumb & Header -->
+      <div class="page-header">
+        <div>
+          <div class="damira-breadcrumb">
+            <a routerLink="/dashboard">Dashboard</a>
+            <span class="separator">/</span>
+            <a routerLink="/crm/customers">CRM</a>
+            <span class="separator">/</span>
+            <span class="current">Bulk Customer Import</span>
+          </div>
+          <h1 class="page-title">Bulk Customer Onboarding Wizard</h1>
+          <p class="page-sub">Upload large datasets via Excel (.xlsx) or CSV with batch validation, duplicate resolution, and error reporting.</p>
+        </div>
+
+        <div class="header-actions">
+          <button (click)="downloadTemplate('xlsx')" class="btn-template">
+            <span class="material-icons-round">download</span>
+            <span>Download Sample Excel</span>
+          </button>
+          <button (click)="downloadTemplate('csv')" class="btn-template">
+            <span class="material-icons-round">download</span>
+            <span>Download Sample CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Import Steps Stepper -->
+      <div class="stepper-bar">
+        <div class="step-node" [class.active]="currentStep() >= 1" [class.current]="currentStep() === 1">
+          <span class="step-num">1</span>
+          <span class="step-label">Upload File</span>
+        </div>
+        <div class="step-line" [class.active]="currentStep() >= 2"></div>
+        <div class="step-node" [class.active]="currentStep() >= 2" [class.current]="currentStep() === 2">
+          <span class="step-num">2</span>
+          <span class="step-label">Preview & Validate</span>
+        </div>
+        <div class="step-line" [class.active]="currentStep() >= 3"></div>
+        <div class="step-node" [class.active]="currentStep() >= 3" [class.current]="currentStep() === 3">
+          <span class="step-num">3</span>
+          <span class="step-label">Duplicate Policy</span>
+        </div>
+        <div class="step-line" [class.active]="currentStep() >= 4"></div>
+        <div class="step-node" [class.active]="currentStep() >= 4" [class.current]="currentStep() === 4">
+          <span class="step-num">4</span>
+          <span class="step-label">Import Summary</span>
+        </div>
+      </div>
+
+      <!-- STEP 1: Upload Card -->
+      <div class="step-card" *ngIf="currentStep() === 1">
+        <div class="upload-dropzone" (click)="fileInput.click()">
+          <span class="material-icons-round upload-icon">cloud_upload</span>
+          <h2 class="upload-title">Click to upload or drag & drop customer spreadsheet</h2>
+          <p class="upload-sub">Supported formats: Microsoft Excel (.xlsx, .xls) and standard CSV (.csv)</p>
+          <input
+            #fileInput
+            type="file"
+            (change)="onFileSelected($event)"
+            accept=".xlsx,.xls,.csv"
+            style="display: none;"
+          />
+        </div>
+
+        <div class="guidelines-card">
+          <h3 class="guideline-heading">
+            <span class="material-icons-round">info</span>
+            <span>Import Format Specifications</span>
+          </h3>
+          <ul class="guideline-list">
+            <li><strong>Mandatory Columns:</strong> First Name, Last Name, Mobile Number, Customer Type, Postal PIN Code.</li>
+            <li><strong>Tax Format:</strong> GSTIN must strictly adhere to the 15-character Indian GST format. PAN must be 10 characters.</li>
+            <li><strong>Batch Processing:</strong> Records are inserted in atomic database transactions of 500 rows to ensure zero memory exhaustion.</li>
+            <li><strong>Duplicates:</strong> You will be able to review and select a duplicate handling strategy (Skip, Update, or Import as New) in Step 3.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- STEP 2: Preview & Validation Results -->
+      <div class="step-card" *ngIf="currentStep() === 2">
+        <div class="validation-summary-card">
+          <div class="v-stat">
+            <span class="v-label">Total Rows Analyzed</span>
+            <span class="v-val">{{ totalRows() }}</span>
+          </div>
+          <div class="v-stat valid">
+            <span class="v-label">Valid & Ready</span>
+            <span class="v-val">{{ validCount() }}</span>
+          </div>
+          <div class="v-stat error">
+            <span class="v-label">Errors Detected</span>
+            <span class="v-val">{{ errorCount() }}</span>
+          </div>
+
+          <div class="v-actions" *ngIf="errorCount() > 0">
+            <span class="err-hint">Rows with errors will be skipped or recorded into error logs.</span>
+          </div>
+        </div>
+
+        <!-- Preview Table -->
+        <div class="damira-table-container preview-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Row #</th>
+                <th>Status</th>
+                <th>Customer Name</th>
+                <th>Customer Type</th>
+                <th>Mobile Number</th>
+                <th>Company</th>
+                <th>Location</th>
+                <th>Validation Diagnosis</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of previewRows().slice(0, 50)" [class.has-error]="!row.isValid">
+                <td>{{ row.rowNumber }}</td>
+                <td>
+                  <span class="val-pill" [class.ok]="row.isValid" [class.fail]="!row.isValid">
+                    {{ row.isValid ? 'VALID' : 'ERROR' }}
+                  </span>
+                </td>
+                <td><strong>{{ row.firstName }} {{ row.lastName }}</strong></td>
+                <td>{{ row.customerType }}</td>
+                <td><code>{{ row.mobile }}</code></td>
+                <td>{{ row.companyName || '-' }}</td>
+                <td>{{ row.cityName || '-' }}, {{ row.stateCodeOrName || '-' }}</td>
+                <td>
+                  <span *ngIf="row.isValid" class="no-err">No errors</span>
+                  <ul *ngIf="!row.isValid" class="row-err-list">
+                    <li *ngFor="let err of row.errors">{{ err }}</li>
+                  </ul>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="step-footer">
+          <button class="btn-cancel" (click)="currentStep.set(1)">Back & Re-upload</button>
+          <button class="btn-primary" (click)="currentStep.set(3)">
+            <span>Proceed to Duplicate Strategy &rarr;</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Duplicate Strategy Selection -->
+      <div class="step-card" *ngIf="currentStep() === 3">
+        <h2 class="section-title">Select Duplicate Record Strategy</h2>
+        <p class="section-desc">Choose how the system should handle records whose mobile number or customer code already exists in DAMIRA:</p>
+
+        <div class="strategy-options">
+          <label class="strategy-card" [class.selected]="duplicateStrategy === 'SKIP'">
+            <input type="radio" name="strat" value="SKIP" [(ngModel)]="duplicateStrategy" />
+            <div class="strat-info">
+              <strong>Skip Duplicate Records (Recommended)</strong>
+              <span>Existing customer profiles remain untouched. New customers will be inserted.</span>
+            </div>
+          </label>
+
+          <label class="strategy-card" [class.selected]="duplicateStrategy === 'UPDATE'">
+            <input type="radio" name="strat" value="UPDATE" [(ngModel)]="duplicateStrategy" />
+            <div class="strat-info">
+              <strong>Update Existing Records</strong>
+              <span>Updates name, company, email, and tax details for matched existing customers.</span>
+            </div>
+          </label>
+
+          <label class="strategy-card" [class.selected]="duplicateStrategy === 'IMPORT_NEW'">
+            <input type="radio" name="strat" value="IMPORT_NEW" [(ngModel)]="duplicateStrategy" />
+            <div class="strat-info">
+              <strong>Import as New Records</strong>
+              <span>Generates a new unique customer code and inserts duplicates as separate entities.</span>
+            </div>
+          </label>
+        </div>
+
+        <div class="step-footer">
+          <button class="btn-cancel" (click)="currentStep.set(2)">Back</button>
+          <button class="btn-primary" [disabled]="isImporting()" (click)="confirmAndExecuteImport()">
+            <mat-spinner diameter="18" *ngIf="isImporting()"></mat-spinner>
+            <span *ngIf="!isImporting()">Confirm & Execute Import</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 4: Import Complete Summary -->
+      <div class="step-card" *ngIf="currentStep() === 4">
+        <div class="summary-result-card">
+          <div class="result-badge-success">
+            <span class="material-icons-round">task_alt</span>
+          </div>
+          <h2 class="result-title">Customer Bulk Import Completed!</h2>
+          <p class="result-desc">Your customer batch has been processed and committed to the database.</p>
+
+          <div class="summary-stats-grid">
+            <div class="s-box">
+              <span class="s-k">Total Ingested</span>
+              <span class="s-v">{{ importSummary()?.totalRecords || 0 }}</span>
+            </div>
+            <div class="s-box success">
+              <span class="s-k">Successfully Created</span>
+              <span class="s-v">{{ importSummary()?.successRecords || 0 }}</span>
+            </div>
+            <div class="s-box danger" *ngIf="importSummary()?.failedRecords > 0">
+              <span class="s-k">Failed Rows</span>
+              <span class="s-v">{{ importSummary()?.failedRecords || 0 }}</span>
+            </div>
+          </div>
+
+          <div class="report-download-box" *ngIf="importSummary()?.failedRecords > 0">
+            <button class="btn-danger-report" (click)="downloadErrorReport(importSummary()?.id)">
+              <span class="material-icons-round">file_download</span>
+              <span>Download Excel Error Report</span>
+            </button>
+          </div>
+
+          <div class="final-actions">
+            <a routerLink="/crm/customers" class="btn-primary">View Customer Directory</a>
+            <button class="btn-cancel" (click)="resetWizard()">Upload Another File</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Historical Imports Table -->
+      <div class="history-section">
+        <h2 class="history-title">Recent Bulk Upload Batches</h2>
+        <div class="damira-table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>File Name</th>
+                <th>Format</th>
+                <th>Strategy</th>
+                <th>Uploaded By</th>
+                <th>Total Records</th>
+                <th>Success</th>
+                <th>Failed</th>
+                <th>Status</th>
+                <th>Upload Date</th>
+                <th style="text-align: right;">Error Report</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let h of importHistory()">
+                <td><strong>{{ h.fileName }}</strong></td>
+                <td>{{ h.fileFormat }}</td>
+                <td><span class="strat-pill">{{ h.duplicateStrategy }}</span></td>
+                <td>{{ h.uploadedBy?.employee?.firstName || h.uploadedBy?.username }}</td>
+                <td>{{ h.totalRecords }}</td>
+                <td style="color: #059669; font-weight: 700;">{{ h.successRecords }}</td>
+                <td [style.color]="h.failedRecords > 0 ? '#dc2626' : 'inherit'">{{ h.failedRecords }}</td>
+                <td>
+                  <span class="status-badge" [ngClass]="'status-' + h.status.toLowerCase()">
+                    {{ h.status }}
+                  </span>
+                </td>
+                <td>{{ h.createdAt | date: 'dd MMM yyyy, hh:mm a' }}</td>
+                <td style="text-align: right;">
+                  <button
+                    *ngIf="h.failedRecords > 0"
+                    (click)="downloadErrorReport(h.id)"
+                    class="btn-report-link"
+                    title="Download Excel error report"
+                  >
+                    <span class="material-icons-round">file_download</span>
+                    <span>Errors (.xlsx)</span>
+                  </button>
+                  <span *ngIf="h.failedRecords === 0" style="color: #94a3b8;">None</span>
+                </td>
+              </tr>
+              <tr *ngIf="importHistory().length === 0">
+                <td colspan="10" style="text-align: center; padding: 2rem; color: #94a3b8;">
+                  No previous bulk uploads on record.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  

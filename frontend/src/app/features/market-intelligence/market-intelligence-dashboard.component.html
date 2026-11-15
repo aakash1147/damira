@@ -1,0 +1,1335 @@
+    <div class="market-intelligence-container">
+      <!-- DASHBOARD TOP HEADER -->
+      <div class="dashboard-header">
+        <div class="header-left">
+          <div class="badge-tag">DAMIRA by Gupta • Executive Geographical Intelligence</div>
+          <h1 class="header-title">Market Intelligence & Geographical Sales Analytics</h1>
+          <p class="header-description">
+            Complete country, state, city, and pincode commercial intelligence, purchasing patterns, financial waterfall, and location decision support.
+          </p>
+        </div>
+
+        <div class="header-actions">
+          <button
+            mat-stroked-button
+            class="filter-toggle-btn"
+            [class.active-filter]="isFilterOpen()"
+            (click)="toggleFilterDrawer()"
+          >
+            <span class="material-icons-round">filter_list</span>
+            <span>Filters</span>
+            <span class="active-dot" *ngIf="hasActiveFilters()"></span>
+          </button>
+
+          <button
+            mat-stroked-button
+            class="export-btn"
+            (click)="exportData('csv')"
+            [disabled]="isLoading()"
+          >
+            <span class="material-icons-round">description</span>
+            Export CSV
+          </button>
+
+          <button
+            mat-flat-button
+            color="primary"
+            class="export-btn primary"
+            (click)="exportData('excel')"
+            [disabled]="isLoading()"
+          >
+            <span class="material-icons-round">file_download</span>
+            Export Excel (.xlsx)
+          </button>
+
+          <button
+            mat-icon-button
+            class="refresh-btn"
+            title="Refresh Data from Database"
+            (click)="loadAllData()"
+            [disabled]="isLoading()"
+          >
+            <span class="material-icons-round" [class.spinning]="isLoading()">refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- GLOBAL FILTER SYSTEM (SECTION 3) -->
+      <div class="filter-drawer" *ngIf="isFilterOpen()">
+        <form [formGroup]="filterForm" (ngSubmit)="applyFilters()" class="filter-form-grid">
+          <!-- 1. Start Date -->
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Start Date</mat-label>
+            <input matInput type="date" formControlName="startDate" />
+          </mat-form-field>
+
+          <!-- 2. End Date -->
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>End Date</mat-label>
+            <input matInput type="date" formControlName="endDate" />
+          </mat-form-field>
+
+          <!-- 3. Country -->
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Country</mat-label>
+            <mat-select formControlName="countryId">
+              <mat-option value="">All Countries</mat-option>
+              <mat-option *ngFor="let c of filterMeta()?.countries" [value]="c.id">
+                {{ c.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- 4. State -->
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>State</mat-label>
+            <mat-select formControlName="stateId" (selectionChange)="onFilterStateChange($event.value)">
+              <mat-option value="">All States</mat-option>
+              <mat-option *ngFor="let s of filterMeta()?.states" [value]="s.id">
+                {{ s.name }} ({{ s.code }})
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- 5. City -->
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>City</mat-label>
+            <mat-select formControlName="cityId">
+              <mat-option value="">All Cities</mat-option>
+              <mat-option *ngFor="let c of availableCitiesForFilter()" [value]="c.id">
+                {{ c.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- 6. Pincode -->
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Pincode / Postal</mat-label>
+            <input matInput placeholder="e.g. 560038" formControlName="postalCode" />
+          </mat-form-field>
+
+          <!-- 7. Customer Type -->
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Customer Type</mat-label>
+            <mat-select formControlName="customerTypeId">
+              <mat-option value="">All Customer Types</mat-option>
+              <mat-option *ngFor="let ct of filterMeta()?.customerTypes" [value]="ct.id">
+                {{ ct.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- 8. Sales Channel -->
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Sales Channel</mat-label>
+            <mat-select formControlName="channelCode">
+              <mat-option value="">All Channels</mat-option>
+              <mat-option *ngFor="let sc of filterMeta()?.salesChannels" [value]="sc.code">
+                {{ sc.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- 9. Product -->
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Product</mat-label>
+            <mat-select formControlName="productId">
+              <mat-option value="">All Products</mat-option>
+              <mat-option *ngFor="let p of filterMeta()?.products" [value]="p.id">
+                {{ p.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- 10. Order Status -->
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Order Status</mat-label>
+            <mat-select formControlName="orderStatus">
+              <mat-option value="">All Eligible Statuses</mat-option>
+              <mat-option *ngFor="let st of filterMeta()?.orderStatuses" [value]="st">
+                {{ st }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Action Buttons -->
+          <div class="filter-form-actions">
+            <button mat-flat-button color="primary" type="submit" [disabled]="isLoading()">
+              <span class="material-icons-round">check</span> Apply Filters
+            </button>
+            <button mat-stroked-button type="button" (click)="resetFilters()" [disabled]="isLoading()">
+              <span class="material-icons-round">restart_alt</span> Reset Filters
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ACTIVE FILTER CHIPS -->
+      <div class="active-chips-bar" *ngIf="hasActiveFilters()">
+        <span class="chips-label">Active Filters:</span>
+        <mat-chip-set>
+          <mat-chip *ngIf="filterForm.value.startDate" (removed)="clearFilterField('startDate')">
+            From: {{ filterForm.value.startDate }}
+            <mat-icon matChipRemove>cancel</mat-icon>
+          </mat-chip>
+          <mat-chip *ngIf="filterForm.value.endDate" (removed)="clearFilterField('endDate')">
+            To: {{ filterForm.value.endDate }}
+            <mat-icon matChipRemove>cancel</mat-icon>
+          </mat-chip>
+          <mat-chip *ngIf="filterForm.value.stateId" (removed)="clearFilterField('stateId')">
+            State: {{ getStateNameById(filterForm.value.stateId) }}
+            <mat-icon matChipRemove>cancel</mat-icon>
+          </mat-chip>
+          <mat-chip *ngIf="filterForm.value.cityId" (removed)="clearFilterField('cityId')">
+            City: {{ getCityNameById(filterForm.value.cityId) }}
+            <mat-icon matChipRemove>cancel</mat-icon>
+          </mat-chip>
+          <mat-chip *ngIf="filterForm.value.channelCode" (removed)="clearFilterField('channelCode')">
+            Channel: {{ filterForm.value.channelCode }}
+            <mat-icon matChipRemove>cancel</mat-icon>
+          </mat-chip>
+          <mat-chip *ngIf="filterForm.value.postalCode" (removed)="clearFilterField('postalCode')">
+            Pincode: {{ filterForm.value.postalCode }}
+            <mat-icon matChipRemove>cancel</mat-icon>
+          </mat-chip>
+          <mat-chip *ngIf="filterForm.value.orderStatus" (removed)="clearFilterField('orderStatus')">
+            Status: {{ filterForm.value.orderStatus }}
+            <mat-icon matChipRemove>cancel</mat-icon>
+          </mat-chip>
+        </mat-chip-set>
+      </div>
+
+      <!-- 8 REAL DATABASE KPI SUMMARY CARDS (SECTION 4) -->
+      <div class="kpi-cards-grid">
+        <!-- 1. Total Net Revenue -->
+        <div class="kpi-card accent-purple">
+          <div class="card-icon-wrap">
+            <span class="material-icons-round">currency_rupee</span>
+          </div>
+          <div class="card-content">
+            <span class="card-label">Total Net Revenue</span>
+            <span class="card-value">₹{{ (overview()?.totalRevenue || 0) | number }}</span>
+            <div class="card-footer">
+              <span class="card-trend positive">
+                <span class="material-icons-round">trending_up</span>
+                {{ overview()?.financials?.profitMarginPct || 0 }}% Gross Margin
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Total Orders -->
+        <div class="kpi-card">
+          <div class="card-icon-wrap">
+            <span class="material-icons-round">shopping_bag</span>
+          </div>
+          <div class="card-content">
+            <span class="card-label">Total Commercial Orders</span>
+            <span class="card-value">{{ (overview()?.totalOrders || 0) | number }}</span>
+            <div class="card-footer">
+              <span class="card-subtext">AOV: ₹{{ (overview()?.averageOrderValue || 0) | number }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Registered Customers -->
+        <div class="kpi-card">
+          <div class="card-icon-wrap">
+            <span class="material-icons-round">group</span>
+          </div>
+          <div class="card-content">
+            <span class="card-label">Registered Customers</span>
+            <span class="card-value">{{ (overview()?.totalCustomers || 0) | number }}</span>
+            <div class="card-footer">
+              <span class="card-subtext">{{ overview()?.customersWithOrders || 0 }} With Orders • {{ overview()?.customersWithoutOrders || 0 }} Untransacted</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Units Dispatched -->
+        <div class="kpi-card">
+          <div class="card-icon-wrap">
+            <span class="material-icons-round">inventory_2</span>
+          </div>
+          <div class="card-content">
+            <span class="card-label">Units Dispatched</span>
+            <span class="card-value">{{ (overview()?.totalUnitsSold || 0) | number }}</span>
+            <div class="card-footer">
+              <span class="card-subtext">Saffron, Mamra Almonds, Walnuts & Honey</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Average Order Value -->
+        <div class="kpi-card">
+          <div class="card-icon-wrap">
+            <span class="material-icons-round">receipt_long</span>
+          </div>
+          <div class="card-content">
+            <span class="card-label">Average Order Value (AOV)</span>
+            <span class="card-value">₹{{ (overview()?.averageOrderValue || 0) | number }}</span>
+            <div class="card-footer">
+              <span class="card-subtext">Net Sales / Dispatched Consignments</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Repeat Customers -->
+        <div class="kpi-card">
+          <div class="card-icon-wrap">
+            <span class="material-icons-round">loyalty</span>
+          </div>
+          <div class="card-content">
+            <span class="card-label">Repeat Customers</span>
+            <span class="card-value">{{ (overview()?.repeatCustomers || 0) | number }}</span>
+            <div class="card-footer">
+              <span class="card-subtext">Placed 2 or more orders</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. Repeat Purchase Rate -->
+        <div class="kpi-card accent-green">
+          <div class="card-icon-wrap">
+            <span class="material-icons-round">published_with_changes</span>
+          </div>
+          <div class="card-content">
+            <span class="card-label">Repeat Purchase Rate</span>
+            <span class="card-value">{{ overview()?.repeatPurchaseRate || 0 }}%</span>
+            <div class="card-footer">
+              <span class="card-trend positive">Repeat / Ordering Customers</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8. Avg Orders / Customer -->
+        <div class="kpi-card">
+          <div class="card-icon-wrap">
+            <span class="material-icons-round">repeat</span>
+          </div>
+          <div class="card-content">
+            <span class="card-label">Avg Orders / Customer</span>
+            <span class="card-value">{{ overview()?.averageOrdersPerCustomer || 0 }}</span>
+            <div class="card-footer">
+              <span class="card-subtext">Across active buying accounts</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALL SIX FULLY FUNCTIONAL TABS (SECTION 2) -->
+      <mat-tab-group
+        [(selectedIndex)]="selectedTabIndex"
+        animationDuration="200ms"
+        class="damira-tab-group"
+      >
+        <!-- ========================================== -->
+        <!-- TAB 1: INDIA MAP & OVERVIEW                -->
+        <!-- ========================================== -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <span class="material-icons-round tab-icon">map</span>
+            <span>1. India Map & Overview</span>
+          </ng-template>
+
+          <div class="tab-body-wrapper">
+            <!-- India Vector Map Component -->
+            <app-india-choropleth-map
+              [statesData]="statesList()"
+              (stateSelected)="onStateSelectedFromMap($event)"
+              (drilldownRequested)="openStateDetail($event.stateId)"
+            ></app-india-choropleth-map>
+
+            <!-- Searchable Geographical Alternative Table -->
+            <div class="quick-geo-table-card">
+              <div class="section-subhead">
+                <div>
+                  <h3>India Geographical Performance Ledger</h3>
+                  <p>Comprehensive state commercial breakdown with live revenue contribution share.</p>
+                </div>
+                <div class="table-search">
+                  <span class="material-icons-round search-icon">search</span>
+                  <input
+                    type="text"
+                    placeholder="Search state name or code..."
+                    [(ngModel)]="stateSearchTerm"
+                  />
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="damira-table">
+                  <thead>
+                    <tr>
+                      <th>State Name</th>
+                      <th>State Code</th>
+                      <th>Net Revenue (₹)</th>
+                      <th>Orders</th>
+                      <th>Customers</th>
+                      <th>AOV (₹)</th>
+                      <th>Repeat Rate</th>
+                      <th>Revenue Share</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let s of filteredStatesList()">
+                      <td class="font-bold">{{ s.stateName }}</td>
+                      <td><span class="code-badge">{{ s.stateCode }}</span></td>
+                      <td class="font-bold text-primary">₹{{ s.totalRevenue | number }}</td>
+                      <td>{{ s.totalOrders }}</td>
+                      <td>{{ s.totalCustomers }}</td>
+                      <td>₹{{ s.averageOrderValue | number }}</td>
+                      <td>
+                        <span class="badge" [class.badge-success]="s.repeatPurchaseRate >= 30">
+                          {{ s.repeatPurchaseRate }}%
+                        </span>
+                      </td>
+                      <td>
+                        <div class="share-cell">
+                          <span>{{ s.revenueContributionPct }}%</span>
+                          <mat-progress-bar mode="determinate" [value]="s.revenueContributionPct" class="tiny-progress"></mat-progress-bar>
+                        </div>
+                      </td>
+                      <td>
+                        <button mat-button color="primary" class="action-sm-btn" (click)="openStateDetail(s.stateId)">
+                          View Profile
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: STATE PERFORMANCE                   -->
+        <!-- ========================================== -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <span class="material-icons-round tab-icon">flag</span>
+            <span>2. State Performance</span>
+          </ng-template>
+
+          <div class="tab-body-wrapper">
+            <!-- Top KPI Cards for States -->
+            <div class="sub-kpi-strip">
+              <div class="mini-kpi">
+                <span class="label">States with Customers</span>
+                <span class="val">{{ stateData()?.kpiCards?.totalStatesWithCustomers || 0 }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Total Orders</span>
+                <span class="val">{{ stateData()?.kpiCards?.totalOrders || 0 }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Total Customers</span>
+                <span class="val">{{ stateData()?.kpiCards?.totalCustomers || 0 }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Total Revenue</span>
+                <span class="val text-primary">₹{{ (stateData()?.kpiCards?.totalRevenue || 0) | number }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Total Profit</span>
+                <span class="val text-success">₹{{ (stateData()?.kpiCards?.totalProfit || 0) | number }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Average Order Value</span>
+                <span class="val">₹{{ (stateData()?.kpiCards?.averageOrderValue || 0) | number }}</span>
+              </div>
+            </div>
+
+            <!-- Charts (5 charts requested) -->
+            <div class="charts-2col-grid">
+              <!-- Chart 1: Top 10 States by Revenue -->
+              <app-bar-chart
+                title="Top 10 States by Net Revenue"
+                subtitle="Commercial volume in INR (₹)"
+                icon="payments"
+                [items]="topStatesByRevenueChartItems()"
+                [showRank]="true"
+                defaultColor="#5B21B6"
+              ></app-bar-chart>
+
+              <!-- Chart 2: Top 10 States by Orders -->
+              <app-bar-chart
+                title="Top 10 States by Orders"
+                subtitle="Fulfilled shipment count"
+                icon="shopping_bag"
+                [items]="topStatesByOrdersChartItems()"
+                [showRank]="true"
+                defaultColor="#7C3AED"
+              ></app-bar-chart>
+
+              <!-- Chart 3: Top 10 States by Customers -->
+              <app-bar-chart
+                title="Top 10 States by Customers"
+                subtitle="Registered customer accounts"
+                icon="group"
+                [items]="topStatesByCustomersChartItems()"
+                [showRank]="true"
+                defaultColor="#3B82F6"
+              ></app-bar-chart>
+
+              <!-- Chart 4: Top 10 States by Profit -->
+              <app-bar-chart
+                title="Top 10 States by Gross Profit"
+                subtitle="Gross profit generated in INR (₹)"
+                icon="trending_up"
+                [items]="topStatesByProfitChartItems()"
+                [showRank]="true"
+                defaultColor="#10B981"
+              ></app-bar-chart>
+            </div>
+
+            <!-- Chart 5: Monthly Revenue Trends by State -->
+            <div class="chart-full-width">
+              <app-trend-chart
+                title="Monthly Revenue Trends Across Major States"
+                subtitle="Revenue progression over the past months"
+                icon="show_chart"
+                [points]="stateMonthlyTrendPoints()"
+              ></app-trend-chart>
+            </div>
+
+            <!-- State Performance Table -->
+            <div class="data-table-container">
+              <div class="table-title-row">
+                <div class="subhead-left">
+                  <h3>State-Wise Performance Directory</h3>
+                  <p>Click any state row to view detailed performance profile.</p>
+                </div>
+                <div class="table-search">
+                  <span class="material-icons-round search-icon">search</span>
+                  <input type="text" placeholder="Search state..." [(ngModel)]="stateSearchTerm" />
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="damira-table striped">
+                  <thead>
+                    <tr>
+                      <th (click)="sortStates('stateName')">State Name ⇅</th>
+                      <th (click)="sortStates('stateCode')">Code ⇅</th>
+                      <th (click)="sortStates('totalCustomers')">Customers ⇅</th>
+                      <th (click)="sortStates('newCustomers')">New Accounts ⇅</th>
+                      <th (click)="sortStates('totalOrders')">Orders ⇅</th>
+                      <th (click)="sortStates('totalRevenue')">Net Revenue (₹) ⇅</th>
+                      <th (click)="sortStates('totalProfit')">Gross Profit (₹) ⇅</th>
+                      <th (click)="sortStates('unitsSold')">Units Sold ⇅</th>
+                      <th (click)="sortStates('averageOrderValue')">AOV (₹) ⇅</th>
+                      <th (click)="sortStates('repeatCustomers')">Repeat Buyers ⇅</th>
+                      <th (click)="sortStates('repeatPurchaseRate')">Repeat Rate ⇅</th>
+                      <th (click)="sortStates('revenueContributionPct')">Revenue Share ⇅</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let s of sortedStates()" class="clickable-row" (click)="openStateDetail(s.stateId)">
+                      <td class="font-bold">{{ s.stateName }}</td>
+                      <td><span class="code-badge">{{ s.stateCode }}</span></td>
+                      <td>{{ s.totalCustomers }}</td>
+                      <td><span class="new-pill">+{{ s.newCustomers }}</span></td>
+                      <td class="font-bold">{{ s.totalOrders }}</td>
+                      <td class="font-bold text-primary">₹{{ s.totalRevenue | number }}</td>
+                      <td class="text-success font-bold">₹{{ s.totalProfit | number }}</td>
+                      <td>{{ s.unitsSold }}</td>
+                      <td>₹{{ s.averageOrderValue | number }}</td>
+                      <td>{{ s.repeatCustomers }}</td>
+                      <td><span class="badge" [class.badge-success]="s.repeatPurchaseRate >= 30">{{ s.repeatPurchaseRate }}%</span></td>
+                      <td>{{ s.revenueContributionPct }}%</td>
+                      <td>
+                        <button mat-button color="primary" class="action-sm-btn" (click)="$event.stopPropagation(); openStateDetail(s.stateId)">
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: CITY PERFORMANCE                    -->
+        <!-- ========================================== -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <span class="material-icons-round tab-icon">location_city</span>
+            <span>3. City Performance</span>
+          </ng-template>
+
+          <div class="tab-body-wrapper">
+            <!-- Top KPI Cards for Cities -->
+            <div class="sub-kpi-strip">
+              <div class="mini-kpi">
+                <span class="label">Cities with Customers</span>
+                <span class="val">{{ cityData()?.kpiCards?.totalCitiesWithCustomers || 0 }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Total Customers</span>
+                <span class="val">{{ cityData()?.kpiCards?.totalCustomers || 0 }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Total Orders</span>
+                <span class="val">{{ cityData()?.kpiCards?.totalOrders || 0 }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Total Revenue</span>
+                <span class="val text-primary">₹{{ (cityData()?.kpiCards?.totalRevenue || 0) | number }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Total Profit</span>
+                <span class="val text-success">₹{{ (cityData()?.kpiCards?.totalProfit || 0) | number }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Average Order Value</span>
+                <span class="val">₹{{ (cityData()?.kpiCards?.averageOrderValue || 0) | number }}</span>
+              </div>
+            </div>
+
+            <!-- Charts (Top 20 rankings & Monthly Sales Trends) -->
+            <div class="charts-2col-grid">
+              <!-- Chart 1: Top 20 Cities by Revenue -->
+              <app-bar-chart
+                title="Top 20 Cities by Revenue"
+                subtitle="Leading metropolitan & tier-2 demand"
+                icon="payments"
+                [items]="topCitiesByRevenueChartItems()"
+                [showRank]="true"
+                defaultColor="#5B21B6"
+              ></app-bar-chart>
+
+              <!-- Chart 2: Top 20 Cities by Orders -->
+              <app-bar-chart
+                title="Top 20 Cities by Orders"
+                subtitle="Fulfillment order volume"
+                icon="shopping_bag"
+                [items]="topCitiesByOrdersChartItems()"
+                [showRank]="true"
+                defaultColor="#7C3AED"
+              ></app-bar-chart>
+
+              <!-- Chart 3: Top 20 Cities by Customers -->
+              <app-bar-chart
+                title="Top 20 Cities by Customers"
+                subtitle="Registered customer accounts"
+                icon="group"
+                [items]="topCitiesByCustomersChartItems()"
+                [showRank]="true"
+                defaultColor="#3B82F6"
+              ></app-bar-chart>
+
+              <!-- Chart 4: Top 20 Cities by Profit -->
+              <app-bar-chart
+                title="Top 20 Cities by Gross Profit"
+                subtitle="City-level margin contribution"
+                icon="trending_up"
+                [items]="topCitiesByProfitChartItems()"
+                [showRank]="true"
+                defaultColor="#10B981"
+              ></app-bar-chart>
+            </div>
+
+            <!-- Chart 5: City-wise Monthly Sales Trends -->
+            <div class="chart-full-width">
+              <app-trend-chart
+                title="Monthly Sales Trends Across Major Cities"
+                subtitle="Revenue trajectory across core cities"
+                icon="show_chart"
+                [points]="cityMonthlyTrendPoints()"
+              ></app-trend-chart>
+            </div>
+
+            <!-- City Performance Table -->
+            <div class="data-table-container">
+              <div class="table-title-row">
+                <div class="subhead-left">
+                  <h3>City Performance Directory</h3>
+                  <p>Click any city to view detailed profile, pincodes, product demand & repeat stats.</p>
+                </div>
+                <div class="table-search">
+                  <span class="material-icons-round search-icon">search</span>
+                  <input type="text" placeholder="Search city or state..." [(ngModel)]="citySearchTerm" />
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="damira-table striped">
+                  <thead>
+                    <tr>
+                      <th (click)="sortCities('cityName')">City ⇅</th>
+                      <th (click)="sortCities('stateName')">State ⇅</th>
+                      <th (click)="sortCities('totalCustomers')">Customers ⇅</th>
+                      <th (click)="sortCities('newCustomers')">New Accounts ⇅</th>
+                      <th (click)="sortCities('totalOrders')">Orders ⇅</th>
+                      <th (click)="sortCities('totalRevenue')">Revenue (₹) ⇅</th>
+                      <th (click)="sortCities('totalProfit')">Profit (₹) ⇅</th>
+                      <th (click)="sortCities('unitsSold')">Units ⇅</th>
+                      <th (click)="sortCities('averageOrderValue')">AOV (₹) ⇅</th>
+                      <th (click)="sortCities('repeatCustomers')">Repeat Buyers ⇅</th>
+                      <th (click)="sortCities('repeatPurchaseRate')">Repeat Rate ⇅</th>
+                      <th (click)="sortCities('revenueContributionPct')">Revenue Share ⇅</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let c of filteredCities()" class="clickable-row" (click)="openCityDetail(c.cityId)">
+                      <td class="font-bold text-primary">{{ c.cityName }}</td>
+                      <td>{{ c.stateName }}</td>
+                      <td>{{ c.totalCustomers }}</td>
+                      <td><span class="new-pill">+{{ c.newCustomers }}</span></td>
+                      <td class="font-bold">{{ c.totalOrders }}</td>
+                      <td class="font-bold">₹{{ c.totalRevenue | number }}</td>
+                      <td class="text-success font-bold">₹{{ c.totalProfit | number }}</td>
+                      <td>{{ c.unitsSold }}</td>
+                      <td>₹{{ c.averageOrderValue | number }}</td>
+                      <td>{{ c.repeatCustomers }}</td>
+                      <td><span class="badge" [class.badge-success]="c.repeatPurchaseRate >= 30">{{ c.repeatPurchaseRate }}%</span></td>
+                      <td>{{ c.revenueContributionPct }}%</td>
+                      <td>
+                        <button mat-button color="primary" class="action-sm-btn" (click)="$event.stopPropagation(); openCityDetail(c.cityId)">
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- ========================================== -->
+        <!-- TAB 4: PINCODE / AREA ANALYTICS            -->
+        <!-- ========================================== -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <span class="material-icons-round tab-icon">pin_drop</span>
+            <span>4. Pincode / Area Analytics</span>
+          </ng-template>
+
+          <div class="tab-body-wrapper">
+            <!-- Top KPI Cards for Pincodes -->
+            <div class="sub-kpi-strip">
+              <div class="mini-kpi">
+                <span class="label">Total Active Pincodes</span>
+                <span class="val">{{ pincodeData()?.kpiCards?.totalActivePincodes || 0 }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Customers in Pincodes</span>
+                <span class="val">{{ pincodeData()?.kpiCards?.totalCustomers || 0 }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Orders Delivered</span>
+                <span class="val">{{ pincodeData()?.kpiCards?.totalOrders || 0 }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Net Revenue</span>
+                <span class="val text-primary">₹{{ (pincodeData()?.kpiCards?.totalRevenue || 0) | number }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Gross Profit</span>
+                <span class="val text-success">₹{{ (pincodeData()?.kpiCards?.totalProfit || 0) | number }}</span>
+              </div>
+            </div>
+
+            <!-- Top 20 Pincodes Showcase Grid -->
+            <div class="top-pincodes-showcase">
+              <div class="section-subhead">
+                <div>
+                  <h3>Top 20 Performing Postal Localities</h3>
+                  <p>Highest commercial value delivery postal codes across India with validated addresses.</p>
+                </div>
+              </div>
+
+              <div class="pincode-cards-grid">
+                <div class="pincode-card" *ngFor="let p of top20Pincodes(); let i = index">
+                  <div class="pin-card-header">
+                    <span class="rank-badge">#{{ i + 1 }}</span>
+                    <span class="pin-num">{{ p.postalCode }}</span>
+                    <span class="pin-city">{{ p.cityName }}</span>
+                  </div>
+                  <div class="pin-card-metrics">
+                    <div>
+                      <small>Revenue</small>
+                      <strong>₹{{ p.totalRevenue | number }}</strong>
+                    </div>
+                    <div>
+                      <small>Orders</small>
+                      <strong>{{ p.totalOrders }}</strong>
+                    </div>
+                    <div>
+                      <small>Customers</small>
+                      <strong>{{ p.totalCustomers }}</strong>
+                    </div>
+                    <div>
+                      <small>AOV</small>
+                      <strong>₹{{ p.averageOrderValue | number }}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pincode Table with Filtering & Sorting -->
+            <div class="data-table-container">
+              <div class="table-title-row">
+                <div class="subhead-left">
+                  <h3>Pincode Commercial Directory</h3>
+                  <p>Complete ledger of all validated shipment pincodes with verified latitude & longitude.</p>
+                </div>
+                <div class="table-search">
+                  <span class="material-icons-round search-icon">search</span>
+                  <input type="text" placeholder="Search pincode or locality..." [(ngModel)]="pincodeSearchTerm" />
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="damira-table striped">
+                  <thead>
+                    <tr>
+                      <th>Pincode</th>
+                      <th>City</th>
+                      <th>State</th>
+                      <th>Customers</th>
+                      <th>Orders</th>
+                      <th>Revenue (₹)</th>
+                      <th>Profit (₹)</th>
+                      <th>Units Sold</th>
+                      <th>AOV (₹)</th>
+                      <th>Repeat Customers</th>
+                      <th>Geo Coordinates</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let p of filteredPincodes()">
+                      <td><span class="pin-badge">{{ p.postalCode }}</span></td>
+                      <td class="font-bold">{{ p.cityName }}</td>
+                      <td>{{ p.stateName }}</td>
+                      <td>{{ p.totalCustomers }}</td>
+                      <td class="font-bold">{{ p.totalOrders }}</td>
+                      <td class="font-bold text-primary">₹{{ p.totalRevenue | number }}</td>
+                      <td class="text-success font-bold">₹{{ p.totalProfit | number }}</td>
+                      <td>{{ p.unitsSold || p.totalOrders }}</td>
+                      <td>₹{{ p.averageOrderValue | number }}</td>
+                      <td>{{ p.repeatCustomers }}</td>
+                      <td>
+                        <span class="geo-badge" *ngIf="p.lat && p.lng">
+                          {{ p.lat | number:'1.2-2' }}, {{ p.lng | number:'1.2-2' }}
+                        </span>
+                        <span class="unmapped-tag" *ngIf="!p.lat">Unmapped</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- ========================================== -->
+        <!-- TAB 5: CUSTOMER VS ORDER CONVERSION        -->
+        <!-- ========================================== -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <span class="material-icons-round tab-icon">compare_arrows</span>
+            <span>5. Customer vs Order Conversion</span>
+          </ng-template>
+
+          <div class="tab-body-wrapper">
+            <!-- Top KPI Cards -->
+            <div class="sub-kpi-strip">
+              <div class="mini-kpi">
+                <span class="label">Total Registered Customers</span>
+                <span class="val">{{ custVsOrdersData()?.kpiCards?.totalRegisteredCustomers || 0 }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Customers With Orders</span>
+                <span class="val text-primary">{{ custVsOrdersData()?.kpiCards?.customersWithAtLeastOneOrder || 0 }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Customers Without Orders</span>
+                <span class="val text-accent">{{ custVsOrdersData()?.kpiCards?.customersWithoutOrders || 0 }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Repeat Customers</span>
+                <span class="val text-success">{{ custVsOrdersData()?.kpiCards?.repeatCustomers || 0 }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Repeat Purchase Rate</span>
+                <span class="val">{{ custVsOrdersData()?.kpiCards?.repeatPurchaseRate || 0 }}%</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Avg Orders / Customer</span>
+                <span class="val">{{ custVsOrdersData()?.kpiCards?.averageOrdersPerCustomer || 0 }}</span>
+              </div>
+            </div>
+
+            <!-- 5 Charts Requested in Prompt Tab 5 -->
+            <div class="charts-2col-grid">
+              <!-- Chart 1: Customers vs Orders by State -->
+              <app-bar-chart
+                title="Customers vs Orders by State"
+                subtitle="Registered accounts (violet) vs fulfilled orders (amber)"
+                icon="compare_arrows"
+                [items]="custVsOrdersByStateChartItems()"
+                defaultColor="#5B21B6"
+              ></app-bar-chart>
+
+              <!-- Chart 2: Customers vs Orders by City -->
+              <app-bar-chart
+                title="Customers vs Orders by City"
+                subtitle="Account density vs actual purchasing activity"
+                icon="location_city"
+                [items]="custVsOrdersByCityChartItems()"
+                defaultColor="#7C3AED"
+              ></app-bar-chart>
+
+              <!-- Chart 3: First-time vs Repeat Customers -->
+              <app-bar-chart
+                title="Customer Loyalty Distribution"
+                subtitle="First-time buyers vs repeat accounts vs untransacted"
+                icon="pie_chart"
+                [items]="customerLoyaltyChartItems()"
+                defaultColor="#10B981"
+              ></app-bar-chart>
+
+              <!-- Chart 4: Customers Without Orders by City -->
+              <app-bar-chart
+                title="Untransacted Customers by City"
+                subtitle="Registered customer base with zero orders (acquisition upside)"
+                icon="person_search"
+                [items]="customersWithoutOrdersChartItems()"
+                defaultColor="#F59E0B"
+              ></app-bar-chart>
+            </div>
+
+            <!-- Chart 5: Repeat Purchase Trends -->
+            <div class="chart-full-width">
+              <app-trend-chart
+                title="Repeat Purchasing Trends Over Time"
+                subtitle="Monthly repeat buying trajectory across all channels"
+                icon="timeline"
+                [points]="repeatPurchaseTrendPoints()"
+              ></app-trend-chart>
+            </div>
+
+            <!-- 4 Strategic Quadrants Showcase -->
+            <div class="quadrant-info-grid">
+              <div class="quad-card powerhouse">
+                <div class="quad-header">
+                  <span class="material-icons-round">star</span>
+                  <h4>B. High Customers + High Orders</h4>
+                </div>
+                <p>Core commercial strongholds. Strong customer concentration and high purchase frequency. Maintain premium fulfillment priority.</p>
+              </div>
+
+              <div class="quad-card potential">
+                <div class="quad-header">
+                  <span class="material-icons-round">bolt</span>
+                  <h4>A. High Customers + Low Orders</h4>
+                </div>
+                <p>High registration achieved but order conversion lagging. Prime targets for first-purchase promotions and WhatsApp re-engagement.</p>
+              </div>
+
+              <div class="quad-card loyal">
+                <div class="quad-header">
+                  <span class="material-icons-round">favorite</span>
+                  <h4>C. Low Customers + High Orders</h4>
+                </div>
+                <p>Selective high-frequency or bulk purchasers. High return-on-ad-spend (ROAS) potential for targeted acquisition ads.</p>
+              </div>
+
+              <div class="quad-card nascent">
+                <div class="quad-header">
+                  <span class="material-icons-round">hourglass_empty</span>
+                  <h4>D. Locations with Strong Repeat Purchasing</h4>
+                </div>
+                <p>High repeat purchase rates (>35%). Ideal candidates for annual subscriptions and VIP gifting clubs.</p>
+              </div>
+            </div>
+
+            <!-- City-wise Comparison Table -->
+            <div class="data-table-container">
+              <div class="table-title-row">
+                <div class="subhead-left">
+                  <h3>City-Level Customer vs Order Activity Matrix</h3>
+                  <p>Quantifies customer concentration against purchasing activity with strategic recommendations.</p>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="damira-table striped">
+                  <thead>
+                    <tr>
+                      <th>City</th>
+                      <th>State</th>
+                      <th>Total Customers</th>
+                      <th>With Orders</th>
+                      <th>Without Orders</th>
+                      <th>Total Orders</th>
+                      <th>Repeat Customers</th>
+                      <th>Orders / Cust</th>
+                      <th>Revenue (₹)</th>
+                      <th>Repeat Rate</th>
+                      <th>Classification</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let item of custVsOrdersTable()">
+                      <td class="font-bold">{{ item.cityName }}</td>
+                      <td>{{ item.stateName }}</td>
+                      <td class="font-bold">{{ item.totalCustomers }}</td>
+                      <td>{{ item.customersWithOrders }}</td>
+                      <td><span class="untransacted-badge">{{ item.customersWithoutOrders }}</span></td>
+                      <td class="font-bold">{{ item.totalOrders }}</td>
+                      <td>{{ item.repeatCustomers }}</td>
+                      <td>{{ item.ordersPerCustomer }}</td>
+                      <td class="font-bold text-primary">₹{{ item.totalRevenue | number }}</td>
+                      <td>{{ item.repeatPurchaseRate }}%</td>
+                      <td>
+                        <span class="quadrant-badge" [ngClass]="item.quadrant.toLowerCase()">
+                          {{ getQuadrantLabel(item.quadrant) }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- ========================================== -->
+        <!-- TAB 6: REVENUE & PROFIT ANALYSIS           -->
+        <!-- ========================================== -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <span class="material-icons-round tab-icon">account_balance_wallet</span>
+            <span>6. Revenue & Profit Analysis</span>
+          </ng-template>
+
+          <div class="tab-body-wrapper">
+            <!-- Financial KPI Cards -->
+            <div class="sub-kpi-strip">
+              <div class="mini-kpi">
+                <span class="label">Gross Sales (GMV)</span>
+                <span class="val">₹{{ (revProfitData()?.kpiCards?.grossSales || 0) | number }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Discounts</span>
+                <span class="val text-danger">-₹{{ (revProfitData()?.kpiCards?.discounts || 0) | number }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Refunds</span>
+                <span class="val text-danger">-₹{{ (revProfitData()?.kpiCards?.refunds || 0) | number }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Net Revenue</span>
+                <span class="val text-primary font-bold">₹{{ (revProfitData()?.kpiCards?.netRevenue || 0) | number }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Total Product Cost</span>
+                <span class="val text-danger">-₹{{ (revProfitData()?.kpiCards?.totalProductCost || 0) | number }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Shipping Cost</span>
+                <span class="val text-danger">-₹{{ (revProfitData()?.kpiCards?.shippingCost || 0) | number }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Gross Profit</span>
+                <span class="val text-success font-bold">₹{{ (revProfitData()?.kpiCards?.grossProfit || 0) | number }}</span>
+              </div>
+              <div class="mini-kpi">
+                <span class="label">Profit Margin</span>
+                <span class="val text-success font-bold">{{ revProfitData()?.kpiCards?.profitMargin || 0 }}%</span>
+              </div>
+            </div>
+
+            <!-- 7 Charts Requested in Prompt Tab 6 -->
+            <div class="charts-2col-grid">
+              <!-- Chart 1: Revenue by State -->
+              <app-bar-chart
+                title="1. Net Revenue by State"
+                subtitle="Top revenue generating states in INR (₹)"
+                icon="payments"
+                [items]="revenueByStateChartItems()"
+                defaultColor="#5B21B6"
+              ></app-bar-chart>
+
+              <!-- Chart 2: Revenue by City -->
+              <app-bar-chart
+                title="2. Net Revenue by City"
+                subtitle="Top revenue generating cities in INR (₹)"
+                icon="location_city"
+                [items]="revenueByCityChartItems()"
+                defaultColor="#7C3AED"
+              ></app-bar-chart>
+
+              <!-- Chart 3: Profit by State -->
+              <app-bar-chart
+                title="3. Gross Profit by State"
+                subtitle="Net profit contribution by state in INR (₹)"
+                icon="trending_up"
+                [items]="profitByStateChartItems()"
+                defaultColor="#10B981"
+              ></app-bar-chart>
+
+              <!-- Chart 4: Profit by City -->
+              <app-bar-chart
+                title="4. Gross Profit by City"
+                subtitle="Net profit contribution by city in INR (₹)"
+                icon="monetization_on"
+                [items]="profitByCityChartItems()"
+                defaultColor="#059669"
+              ></app-bar-chart>
+
+              <!-- Chart 5: Revenue Contribution by Location -->
+              <app-bar-chart
+                title="7. Revenue Contribution Share by Location"
+                subtitle="Percentage share of total brand turnover"
+                icon="pie_chart"
+                [items]="revenueContributionChartItems()"
+                defaultColor="#3B82F6"
+              ></app-bar-chart>
+            </div>
+
+            <!-- Chart 6 & 7: Monthly Revenue Trends & Monthly Profit Trends -->
+            <div class="charts-2col-grid">
+              <app-trend-chart
+                title="5. Monthly Revenue Trends"
+                subtitle="Turnover progression over past periods"
+                icon="show_chart"
+                [points]="monthlyRevenueTrendPoints()"
+              ></app-trend-chart>
+
+              <app-trend-chart
+                title="6. Monthly Profit Trends"
+                subtitle="Net gross profit progression over past periods"
+                icon="insights"
+                [points]="monthlyProfitTrendPoints()"
+              ></app-trend-chart>
+            </div>
+
+            <!-- Detailed Geographical Financial Ledger Table -->
+            <div class="data-table-container">
+              <div class="table-title-row">
+                <div class="subhead-left">
+                  <h3>Detailed Geographical Financial & Cost Ledger</h3>
+                  <p>Audited reconciliation: Gross Sales, Discounts, Refunds, Net Turnover, Procurement Costs, Logistics, and Profit Margins.</p>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="damira-table striped">
+                  <thead>
+                    <tr>
+                      <th>State</th>
+                      <th>City</th>
+                      <th>Orders</th>
+                      <th>Gross Sales (₹)</th>
+                      <th>Discounts (₹)</th>
+                      <th>Refunds (₹)</th>
+                      <th>Net Revenue (₹)</th>
+                      <th>Product Cost (₹)</th>
+                      <th>Shipping (₹)</th>
+                      <th>Other Costs (₹)</th>
+                      <th>Gross Profit (₹)</th>
+                      <th>Margin (%)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of financialLedgerRows()">
+                      <td class="font-bold">{{ row.stateName }}</td>
+                      <td class="font-bold text-primary">{{ row.cityName }}</td>
+                      <td>{{ row.orders }}</td>
+                      <td>₹{{ row.grossSales | number }}</td>
+                      <td class="text-danger">-₹{{ row.discounts | number }}</td>
+                      <td class="text-danger">₹{{ row.refunds | number }}</td>
+                      <td class="font-bold text-primary">₹{{ row.netRevenue | number }}</td>
+                      <td class="text-danger">-₹{{ row.productCost | number }}</td>
+                      <td class="text-danger">-₹{{ row.shippingCost | number }}</td>
+                      <td>-₹{{ row.otherAllocatedCosts | number }}</td>
+                      <td class="text-success font-bold">₹{{ row.profit | number }}</td>
+                      <td><span class="badge badge-success">{{ row.profitMargin }}%</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+
+      <!-- STATE DETAIL MODAL / DRAWER -->
+      <div class="detail-drawer-backdrop" *ngIf="activeStateDetail()" (click)="closeStateDetail()">
+        <div class="detail-drawer-card" (click)="$event.stopPropagation()">
+          <div class="drawer-header">
+            <div>
+              <span class="drawer-pre">State Performance Profile</span>
+              <h2>{{ activeStateDetail()?.state?.name }} ({{ activeStateDetail()?.state?.code }})</h2>
+              <small>GST Code: {{ activeStateDetail()?.state?.gstCode || 'N/A' }} • {{ activeStateDetail()?.state?.countryName }}</small>
+            </div>
+            <button mat-icon-button (click)="closeStateDetail()">
+              <span class="material-icons-round">close</span>
+            </button>
+          </div>
+
+          <div class="drawer-body">
+            <!-- State KPIs -->
+            <div class="drawer-kpis-grid">
+              <div class="dk-card">
+                <small>Revenue</small>
+                <strong class="text-primary">₹{{ activeStateDetail()?.kpis?.totalRevenue | number }}</strong>
+              </div>
+              <div class="dk-card">
+                <small>Orders</small>
+                <strong>{{ activeStateDetail()?.kpis?.totalOrders }}</strong>
+              </div>
+              <div class="dk-card">
+                <small>Customers</small>
+                <strong>{{ activeStateDetail()?.kpis?.totalCustomers }}</strong>
+              </div>
+              <div class="dk-card">
+                <small>Gross Profit</small>
+                <strong class="text-success">₹{{ activeStateDetail()?.kpis?.financials?.grossProfit | number }}</strong>
+              </div>
+              <div class="dk-card">
+                <small>Repeat Rate</small>
+                <strong>{{ activeStateDetail()?.kpis?.repeatPurchaseRate }}%</strong>
+              </div>
+            </div>
+
+            <!-- Top Cities in this State -->
+            <div class="drawer-section">
+              <h4>Leading Cities in {{ activeStateDetail()?.state?.name }}</h4>
+              <table class="damira-table striped">
+                <thead>
+                  <tr>
+                    <th>City</th>
+                    <th>Customers</th>
+                    <th>Orders</th>
+                    <th>Revenue</th>
+                    <th>Profit</th>
+                    <th>AOV</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let c of activeStateDetail()?.topCities">
+                    <td class="font-bold">{{ c.cityName }}</td>
+                    <td>{{ c.totalCustomers }}</td>
+                    <td>{{ c.totalOrders }}</td>
+                    <td class="font-bold text-primary">₹{{ c.totalRevenue | number }}</td>
+                    <td class="text-success">₹{{ c.totalProfit | number }}</td>
+                    <td>₹{{ c.averageOrderValue | number }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Best Selling Products in this State -->
+            <div class="drawer-section" *ngIf="activeStateDetail()?.bestSellingProducts?.length">
+              <h4>Best Selling SKUs in {{ activeStateDetail()?.state?.name }}</h4>
+              <div class="products-grid">
+                <div class="prod-card" *ngFor="let p of activeStateDetail()?.bestSellingProducts">
+                  <strong>{{ p.productName }}</strong>
+                  <small>{{ p.variantName }} • {{ p.sku }}</small>
+                  <div class="prod-stat">
+                    <span>Units Sold: {{ p.unitsSold }}</span>
+                    <span class="text-primary font-bold">₹{{ p.netRevenue | number }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CITY DETAIL MODAL / DRAWER -->
+      <div class="detail-drawer-backdrop" *ngIf="activeCityDetail()" (click)="closeCityDetail()">
+        <div class="detail-drawer-card" (click)="$event.stopPropagation()">
+          <div class="drawer-header">
+            <div>
+              <span class="drawer-pre">City Commercial Profile</span>
+              <h2>{{ activeCityDetail()?.city?.name }}</h2>
+              <small>{{ activeCityDetail()?.city?.stateName }} ({{ activeCityDetail()?.city?.stateCode }}) • {{ activeCityDetail()?.city?.countryName }}</small>
+            </div>
+            <button mat-icon-button (click)="closeCityDetail()">
+              <span class="material-icons-round">close</span>
+            </button>
+          </div>
+
+          <div class="drawer-body">
+            <!-- City KPIs -->
+            <div class="drawer-kpis-grid">
+              <div class="dk-card">
+                <small>Revenue</small>
+                <strong class="text-primary">₹{{ activeCityDetail()?.kpis?.totalRevenue | number }}</strong>
+              </div>
+              <div class="dk-card">
+                <small>Orders</small>
+                <strong>{{ activeCityDetail()?.kpis?.totalOrders }}</strong>
+              </div>
+              <div class="dk-card">
+                <small>Customers</small>
+                <strong>{{ activeCityDetail()?.kpis?.totalCustomers }}</strong>
+              </div>
+              <div class="dk-card">
+                <small>Repeat Rate</small>
+                <strong>{{ activeCityDetail()?.repeatPurchaseStats?.repeatPurchaseRate }}%</strong>
+              </div>
+              <div class="dk-card">
+                <small>Repeat Buyers</small>
+                <strong>{{ activeCityDetail()?.repeatPurchaseStats?.repeatCustomers }}</strong>
+              </div>
+            </div>
+
+            <!-- Pincodes in this City -->
+            <div class="drawer-section" *ngIf="activeCityDetail()?.pincodeDistribution?.length">
+              <h4>Pincode Localities in {{ activeCityDetail()?.city?.name }}</h4>
+              <table class="damira-table striped">
+                <thead>
+                  <tr>
+                    <th>Postal Code</th>
+                    <th>Orders</th>
+                    <th>Revenue</th>
+                    <th>Customers</th>
+                    <th>AOV</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let p of activeCityDetail()?.pincodeDistribution">
+                    <td><span class="pin-badge">{{ p.postalCode }}</span></td>
+                    <td>{{ p.totalOrders }}</td>
+                    <td class="font-bold text-primary">₹{{ p.totalRevenue | number }}</td>
+                    <td>{{ p.totalCustomers }}</td>
+                    <td>₹{{ p.averageOrderValue | number }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Best Selling Products in this City -->
+            <div class="drawer-section" *ngIf="activeCityDetail()?.bestSellingProducts?.length">
+              <h4>Top Products in {{ activeCityDetail()?.city?.name }}</h4>
+              <div class="products-grid">
+                <div class="prod-card" *ngFor="let p of activeCityDetail()?.bestSellingProducts">
+                  <strong>{{ p.productName }}</strong>
+                  <small>{{ p.variantName }}</small>
+                  <div class="prod-stat">
+                    <span>{{ p.unitsSold }} units</span>
+                    <span class="text-primary font-bold">₹{{ p.netRevenue | number }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  

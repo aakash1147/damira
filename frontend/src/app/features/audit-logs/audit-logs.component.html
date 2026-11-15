@@ -1,0 +1,133 @@
+    <div class="page-container">
+      <!-- Header -->
+      <div class="page-header">
+        <div>
+          <div class="damira-breadcrumb">
+            <a routerLink="/dashboard">Dashboard</a>
+            <span class="separator">/</span>
+            <span>System</span>
+            <span class="separator">/</span>
+            <span class="current">Audit Logs</span>
+          </div>
+          <h1 class="page-title">System Audit & Compliance Trail</h1>
+          <p class="page-sub">Immutable record of security events, administrative logins, and data modifications.</p>
+        </div>
+      </div>
+
+      <!-- JSON Diff Inspector Modal -->
+      <div class="modal-backdrop" *ngIf="selectedLog()">
+        <div class="diff-modal-card">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">Audit Record Details</h2>
+              <span class="modal-sub">
+                Action: <strong>{{ selectedLog()?.action }}</strong> &bull; Module: <strong>{{ selectedLog()?.module }}</strong> &bull; Record ID: {{ selectedLog()?.recordId || '-' }}
+              </span>
+            </div>
+            <button class="close-btn" (click)="selectedLog.set(null)">
+              <span class="material-icons-round">close</span>
+            </button>
+          </div>
+
+          <div class="diff-comparison-grid">
+            <div class="diff-column">
+              <h3 class="col-title previous">Old Values (Previous State)</h3>
+              <pre class="json-code">{{ formatJson(selectedLog()?.oldValues) }}</pre>
+            </div>
+            <div class="diff-column">
+              <h3 class="col-title current">New Values (Modified State)</h3>
+              <pre class="json-code">{{ formatJson(selectedLog()?.newValues) }}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters Toolbar -->
+      <div class="filter-toolbar">
+        <div class="filter-controls">
+          <select [(ngModel)]="moduleFilter" (change)="loadLogs()" class="filter-select">
+            <option value="">All System Modules</option>
+            <option value="AUTH">Authentication</option>
+            <option value="CUSTOMERS">Customers CRM</option>
+            <option value="EMPLOYEES">Employees</option>
+            <option value="USERS">User Accounts</option>
+            <option value="ROLES">Roles & Permissions</option>
+            <option value="MASTER_DATA">Master Data</option>
+          </select>
+
+          <select [(ngModel)]="actionFilter" (change)="loadLogs()" class="filter-select">
+            <option value="">All Action Types</option>
+            <option value="LOGIN">LOGIN</option>
+            <option value="LOGOUT">LOGOUT</option>
+            <option value="CREATE">CREATE</option>
+            <option value="UPDATE">UPDATE</option>
+            <option value="DELETE">DELETE</option>
+            <option value="BULK_IMPORT">BULK_IMPORT</option>
+            <option value="RESET_PASSWORD">RESET_PASSWORD</option>
+          </select>
+
+          <button (click)="loadLogs()" class="refresh-btn" title="Refresh">
+            <span class="material-icons-round">refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Logs Table -->
+      <div class="loading-state" *ngIf="isLoading()">
+        <mat-spinner diameter="36"></mat-spinner>
+        <span>Loading system audit trail...</span>
+      </div>
+
+      <div class="damira-table-container" *ngIf="!isLoading()">
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>User</th>
+              <th>Action</th>
+              <th>Module</th>
+              <th>Record ID</th>
+              <th>IP Address</th>
+              <th style="text-align: right;">State Diff</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let log of logs()">
+              <td>{{ log.createdAt | date: 'dd MMM yyyy, hh:mm:ss a' }}</td>
+              <td>
+                <div class="user-meta" *ngIf="log.user">
+                  <strong>{{ log.user.username }}</strong>
+                  <small>{{ log.user.employee?.firstName }} {{ log.user.employee?.lastName }}</small>
+                </div>
+                <span *ngIf="!log.user" style="color: #94a3b8;">System / Anonymous</span>
+              </td>
+              <td>
+                <span class="action-tag" [ngClass]="'action-' + log.action.toLowerCase()">
+                  {{ log.action }}
+                </span>
+              </td>
+              <td><code>{{ log.module }}</code></td>
+              <td><span class="record-id">{{ log.recordId || '-' }}</span></td>
+              <td><code class="ip-tag">{{ log.ipAddress || '-' }}</code></td>
+              <td style="text-align: right;">
+                <button
+                  *ngIf="log.oldValues || log.newValues"
+                  (click)="selectedLog.set(log)"
+                  class="btn-view-diff"
+                >
+                  <span class="material-icons-round">data_object</span>
+                  <span>View Changes</span>
+                </button>
+                <span *ngIf="!log.oldValues && !log.newValues" style="color: #94a3b8;">-</span>
+              </td>
+            </tr>
+            <tr *ngIf="logs().length === 0">
+              <td colspan="7" style="text-align: center; padding: 3rem; color: #94a3b8;">
+                No audit log records match the current filter.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  

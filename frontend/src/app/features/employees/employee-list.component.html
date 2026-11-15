@@ -1,0 +1,214 @@
+    <div class="page-container">
+      <!-- Breadcrumb & Header -->
+      <div class="page-header">
+        <div>
+          <div class="damira-breadcrumb">
+            <a routerLink="/dashboard">Dashboard</a>
+            <span class="separator">/</span>
+            <span>Company Management</span>
+            <span class="separator">/</span>
+            <span class="current">Employees</span>
+          </div>
+          <h1 class="page-title">Employee Directory</h1>
+          <p class="page-sub">Manage internal company personnel, departments, and linked user accounts.</p>
+        </div>
+
+        <div class="header-actions">
+          <a
+            *hasPermission="['EMPLOYEES', 'CREATE']"
+            routerLink="/company/employees/new"
+            class="btn-primary-action"
+          >
+            <span class="material-icons-round">person_add</span>
+            <span>Onboard Employee</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Filters Toolbar -->
+      <div class="filter-toolbar">
+        <div class="search-box">
+          <span class="material-icons-round search-icon">search</span>
+          <input
+            type="text"
+            [(ngModel)]="searchQuery"
+            (keyup.enter)="onSearch()"
+            placeholder="Search by name, code, email, mobile..."
+            class="search-input"
+          />
+          <button *ngIf="searchQuery" (click)="clearSearch()" class="clear-btn">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+
+        <div class="filter-controls">
+          <select [(ngModel)]="statusFilter" (change)="onSearch()" class="filter-select">
+            <option value="">All Statuses</option>
+            <option value="ACTIVE">Active</option>
+            <option value="PROBATION">Probation</option>
+            <option value="NOTICE_PERIOD">Notice Period</option>
+            <option value="RESIGNED">Resigned</option>
+            <option value="TERMINATED">Terminated</option>
+          </select>
+
+          <button (click)="loadEmployees()" class="refresh-btn" title="Refresh">
+            <span class="material-icons-round">refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="isLoading()">
+        <mat-spinner diameter="36"></mat-spinner>
+        <span>Loading employee directory...</span>
+      </div>
+
+      <!-- Data Table -->
+      <div class="damira-table-container" *ngIf="!isLoading()">
+        <table>
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Code</th>
+              <th>Contact Details</th>
+              <th>Department / Role</th>
+              <th>Date of Joining</th>
+              <th>Status</th>
+              <th>Login Account</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let emp of employees()">
+              <!-- Employee Name & Avatar -->
+              <td>
+                <div class="user-cell">
+                  <div class="avatar-sm">
+                    {{ emp.firstName[0] }}{{ emp.lastName[0] }}
+                  </div>
+                  <div class="user-meta">
+                    <span class="name">{{ emp.fullName }}</span>
+                    <span class="gender-tag">{{ emp.gender }}</span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Code -->
+              <td>
+                <span class="code-pill">{{ emp.employeeCode }}</span>
+              </td>
+
+              <!-- Contact -->
+              <td>
+                <div class="contact-meta">
+                  <span class="email">{{ emp.email }}</span>
+                  <span class="mobile">{{ emp.mobile }}</span>
+                </div>
+              </td>
+
+              <!-- Dept / Role -->
+              <td>
+                <div class="role-meta">
+                  <span class="dept">{{ emp.department || 'Unassigned' }}</span>
+                  <span class="desig">{{ emp.designation || '-' }}</span>
+                </div>
+              </td>
+
+              <!-- Date -->
+              <td>{{ emp.dateOfJoining | date: 'dd MMM yyyy' }}</td>
+
+              <!-- Status -->
+              <td>
+                <span class="status-badge" [ngClass]="'status-' + emp.status.toLowerCase()">
+                  {{ emp.status }}
+                </span>
+              </td>
+
+              <!-- Login Account Status -->
+              <td>
+                <div class="account-pill" [class.linked]="emp.hasLoginAccount">
+                  <span class="material-icons-round">
+                    {{ emp.hasLoginAccount ? 'check_circle' : 'cancel' }}
+                  </span>
+                  <span>{{ emp.hasLoginAccount ? emp.username : 'No Account' }}</span>
+                </div>
+              </td>
+
+              <!-- Actions -->
+              <td style="text-align: right;">
+                <button [matMenuTriggerFor]="actionMenu" class="action-icon-btn">
+                  <span class="material-icons-round">more_vert</span>
+                </button>
+                <mat-menu #actionMenu="matMenu" xPosition="before">
+                  <button mat-menu-item (click)="viewDetails(emp.id)">
+                    <span class="material-icons-round">visibility</span>
+                    <span>View Profile</span>
+                  </button>
+                  <button
+                    *hasPermission="['EMPLOYEES', 'EDIT']"
+                    mat-menu-item
+                    (click)="editEmployee(emp.id)"
+                  >
+                    <span class="material-icons-round">edit</span>
+                    <span>Edit Details</span>
+                  </button>
+                  <button
+                    *hasPermission="['EMPLOYEES', 'EDIT']"
+                    mat-menu-item
+                    (click)="toggleStatus(emp)"
+                  >
+                    <span class="material-icons-round">swap_horiz</span>
+                    <span>Toggle Active/Inactive</span>
+                  </button>
+                  <button
+                    *hasPermission="['EMPLOYEES', 'DELETE']"
+                    mat-menu-item
+                    (click)="deleteEmployee(emp)"
+                    style="color: #dc2626;"
+                  >
+                    <span class="material-icons-round" style="color: #dc2626;">delete</span>
+                    <span>Archive Employee</span>
+                  </button>
+                </mat-menu>
+              </td>
+            </tr>
+
+            <!-- Empty State -->
+            <tr *ngIf="employees().length === 0">
+              <td colspan="8" class="empty-state">
+                <span class="material-icons-round empty-icon">badge</span>
+                <h3>No employees found</h3>
+                <p>Try adjusting your search criteria or onboard a new employee.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Pagination Bar -->
+        <div class="pagination-footer">
+          <div class="pagination-info">
+            Showing {{ (currentPage() - 1) * pageSize() + 1 }} -
+            {{ Math.min(currentPage() * pageSize(), totalRecords()) }} of
+            {{ totalRecords() }} employees
+          </div>
+          <div class="pagination-nav">
+            <button
+              [disabled]="currentPage() === 1"
+              (click)="changePage(currentPage() - 1)"
+              class="page-btn"
+            >
+              Previous
+            </button>
+            <span class="page-current">Page {{ currentPage() }} of {{ totalPages() }}</span>
+            <button
+              [disabled]="currentPage() >= totalPages()"
+              (click)="changePage(currentPage() + 1)"
+              class="page-btn"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  

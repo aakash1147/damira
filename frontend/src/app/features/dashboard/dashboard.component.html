@@ -1,0 +1,161 @@
+    <div class="dashboard-page">
+      <!-- Welcome Banner -->
+      <div class="welcome-header">
+        <div>
+          <h1 class="page-title">Executive Dashboard</h1>
+          <p class="page-sub">
+            Welcome back, <strong>{{ currentUser()?.fullName || currentUser()?.username }}</strong>. Here is the operational summary for <strong>DAMIRA by Gupta</strong>.
+          </p>
+        </div>
+        <div class="header-actions">
+          <a
+            *hasPermission="['CUSTOMERS', 'CREATE']"
+            routerLink="/crm/customers/new"
+            class="action-btn primary"
+          >
+            <span class="material-icons-round">person_add</span>
+            <span>New Customer</span>
+          </a>
+          <a
+            *hasPermission="['CUSTOMERS', 'IMPORT']"
+            routerLink="/crm/import"
+            class="action-btn secondary"
+          >
+            <span class="material-icons-round">upload_file</span>
+            <span>Bulk Import</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- KPI Stat Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap purple">
+            <span class="material-icons-round">people_alt</span>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">Total Customers</span>
+            <span class="kpi-value">{{ stats().totalCustomers }}</span>
+            <span class="kpi-sub positive">+12% vs last month</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap emerald">
+            <span class="material-icons-round">check_circle</span>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">Active Customers</span>
+            <span class="kpi-value">{{ stats().activeCustomers }}</span>
+            <span class="kpi-sub">98.2% healthy status</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap blue">
+            <span class="material-icons-round">person_add_alt_1</span>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">New This Month</span>
+            <span class="kpi-value">{{ stats().newCustomersMonth }}</span>
+            <span class="kpi-sub positive">+8 registered this week</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap amber">
+            <span class="material-icons-round">badge</span>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">Active Employees</span>
+            <span class="kpi-value">{{ stats().activeEmployees }}</span>
+            <span class="kpi-sub">Across 6 departments</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Panels Grid -->
+      <div class="panels-grid">
+        <!-- CRM Operational Highlights -->
+        <div class="dashboard-panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Customer Distribution by Type</h2>
+              <span class="panel-sub">Breakdown across retail, distributor and wholesale</span>
+            </div>
+            <a routerLink="/crm/customers" class="panel-link">View Directory &rarr;</a>
+          </div>
+
+          <div class="distribution-list">
+            <div class="dist-row">
+              <span class="dist-name">Wholesaler</span>
+              <div class="dist-bar-wrap">
+                <div class="dist-bar purple" style="width: 45%;"></div>
+              </div>
+              <span class="dist-val">45%</span>
+            </div>
+            <div class="dist-row">
+              <span class="dist-name">Distributor</span>
+              <div class="dist-bar-wrap">
+                <div class="dist-bar violet" style="width: 28%;"></div>
+              </div>
+              <span class="dist-val">28%</span>
+            </div>
+            <div class="dist-row">
+              <span class="dist-name">Corporate</span>
+              <div class="dist-bar-wrap">
+                <div class="dist-bar blue" style="width: 15%;"></div>
+              </div>
+              <span class="dist-val">15%</span>
+            </div>
+            <div class="dist-row">
+              <span class="dist-name">Retailer & Individual</span>
+              <div class="dist-bar-wrap">
+                <div class="dist-bar emerald" style="width: 12%;"></div>
+              </div>
+              <span class="dist-val">12%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Audit Activity -->
+        <div class="dashboard-panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Recent Activity Logs</h2>
+              <span class="panel-sub">Security, logins and profile changes</span>
+            </div>
+            <a routerLink="/system/audit-logs" class="panel-link">Full Audit &rarr;</a>
+          </div>
+
+          <div class="activity-timeline">
+            <div class="timeline-item">
+              <div class="timeline-bullet login"></div>
+              <div class="timeline-body">
+                <span class="timeline-text">
+                  <strong>{{ currentUser()?.username }}</strong> logged in to Internal Console
+                </span>
+                <span class="timeline-time">Just now &bull; Web Console</span>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-bullet system"></div>
+              <div class="timeline-body">
+                <span class="timeline-text">System initial database migration deployed</span>
+                <span class="timeline-time">System Event &bull; Initializer</span>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-bullet seed"></div>
+              <div class="timeline-body">
+                <span class="timeline-text">Master Data & GST Indian state codes provisioned</span>
+                <span class="timeline-time">Seed Task &bull; 36 Regions</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  

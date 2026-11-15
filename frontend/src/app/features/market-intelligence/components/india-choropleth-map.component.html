@@ -1,0 +1,414 @@
+<div class="india-map-container" [class.fullscreen-mode]="isFullscreen()">
+  <!-- Metric Selector & Control Header -->
+  <div class="map-controls">
+    <div class="metric-switch">
+      <span class="control-label">Choropleth Metric:</span>
+      <mat-button-toggle-group
+        [value]="selectedMetric()"
+        (change)="onMetricChange($event.value)"
+        class="damira-toggle-group"
+      >
+        <mat-button-toggle value="revenue">
+          <span class="material-icons-round toggle-icon">payments</span>
+          Revenue (₹)
+        </mat-button-toggle>
+        <mat-button-toggle value="orders">
+          <span class="material-icons-round toggle-icon">shopping_bag</span>
+          Orders
+        </mat-button-toggle>
+        <mat-button-toggle value="customers">
+          <span class="material-icons-round toggle-icon">group</span>
+          Customers
+        </mat-button-toggle>
+        <mat-button-toggle value="profit">
+          <span class="material-icons-round toggle-icon">trending_up</span>
+          Profit (₹)
+        </mat-button-toggle>
+        <mat-button-toggle value="units">
+          <span class="material-icons-round toggle-icon">inventory_2</span>
+          Units Sold
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <!-- Quick Tool Buttons -->
+    <div class="map-action-tools">
+      <div class="zoom-controls">
+        <button
+          mat-icon-button
+          class="map-tool-btn"
+          (click)="zoomIn()"
+          matTooltip="Zoom In"
+          aria-label="Zoom In"
+        >
+          <span class="material-icons-round">add</span>
+        </button>
+        <button
+          mat-icon-button
+          class="map-tool-btn"
+          (click)="zoomOut()"
+          matTooltip="Zoom Out"
+          aria-label="Zoom Out"
+        >
+          <span class="material-icons-round">remove</span>
+        </button>
+        <button
+          mat-icon-button
+          class="map-tool-btn"
+          (click)="resetZoom()"
+          matTooltip="Reset View (100%)"
+          aria-label="Reset View"
+        >
+          <span class="material-icons-round">home</span>
+        </button>
+      </div>
+
+      <button
+        mat-icon-button
+        class="map-tool-btn"
+        [class.active-tool]="showLabels()"
+        (click)="toggleLabels()"
+        matTooltip="Toggle State Labels"
+      >
+        <span class="material-icons-round">{{ showLabels() ? 'label' : 'label_off' }}</span>
+      </button>
+
+      <button
+        mat-icon-button
+        class="map-tool-btn"
+        [class.active-tool]="isFullscreen()"
+        (click)="toggleFullscreen()"
+        matTooltip="{{ isFullscreen() ? 'Exit Fullscreen' : 'Fullscreen Map' }}"
+      >
+        <span class="material-icons-round">{{ isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}</span>
+      </button>
+
+      <button
+        *ngIf="selectedStateCode()"
+        mat-stroked-button
+        color="primary"
+        class="reset-selection-btn"
+        (click)="clearStateSelection()"
+      >
+        <span class="material-icons-round">restart_alt</span>
+        <span>Clear Selection</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Map & Details Layout -->
+  <div class="map-and-details">
+    <!-- SVG Map Canvas Wrapper -->
+    <div
+      #mapSvgWrapper
+      class="svg-wrapper"
+      (mousedown)="onMouseDown($event)"
+      (mousemove)="onMouseMove($event)"
+      (mouseup)="onMouseUp()"
+      (mouseleave)="onMouseUp()"
+    >
+      <svg
+        [attr.viewBox]="mapData.viewBox"
+        class="india-svg"
+        xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        <defs>
+          <!-- Elegant Drop Shadow for hovered/selected state -->
+          <filter id="stateHoverShadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#4c1d95" flood-opacity="0.25" />
+          </filter>
+
+          <filter id="nationalBorderShadow" x="-5%" y="-5%" width="110%" height="110%">
+            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#0f172a" flood-opacity="0.12" />
+          </filter>
+        </defs>
+
+        <!-- Background drag surface -->
+        <rect width="100%" height="100%" class="map-bg" fill="transparent" />
+
+        <!-- Zoomable & Pannable Group -->
+        <g [attr.transform]="transformString" class="viewport-group">
+          <!-- India National Boundary Outline Shadow -->
+          <path
+            [attr.d]="mapData.outlinePath"
+            class="national-outline-base"
+            filter="url(#nationalBorderShadow)"
+          />
+
+          <!-- 36 States & Union Territories Geographic Polygons -->
+          <g class="states-group">
+            <path
+              *ngFor="let state of mapData.states"
+              [attr.d]="state.d"
+              [attr.id]="'state-' + state.code"
+              [attr.fill]="getStateFill(state)"
+              [class.selected-state]="selectedStateCode() === state.code"
+              [class.hovered-state]="hoveredFeature()?.code === state.code"
+              [class.active-data]="getStateValue(state) > 0"
+              [class.no-data]="getStateValue(state) === 0"
+              class="state-boundary"
+              (mouseenter)="onStateHover(state, $event)"
+              (mousemove)="onStateMouseMove($event)"
+              (mouseleave)="onStateLeave()"
+              (click)="onStateClick(state)"
+            />
+          </g>
+
+          <!-- Outer National Border Crisp Stroke -->
+          <path
+            [attr.d]="mapData.outlinePath"
+            class="national-outline-stroke"
+            pointer-events="none"
+          />
+
+          <!-- State Labels & Leader Lines -->
+          <g class="labels-group" *ngIf="showLabels()" pointer-events="none">
+            <ng-container *ngFor="let state of mapData.states">
+              <!-- Small states with leader lines -->
+              <ng-container *ngIf="state.label.hasLeaderLine && state.label.leaderTarget">
+                <line
+                  [attr.x1]="state.label.x"
+                  [attr.y1]="state.label.y"
+                  [attr.x2]="state.label.leaderTarget[0]"
+                  [attr.y2]="state.label.leaderTarget[1]"
+                  class="leader-line"
+                />
+                <circle
+                  [attr.cx]="state.label.leaderTarget[0]"
+                  [attr.cy]="state.label.leaderTarget[1]"
+                  r="2.5"
+                  class="leader-point"
+                />
+                <text
+                  [attr.x]="state.label.x"
+                  [attr.y]="state.label.y"
+                  [attr.text-anchor]="state.label.anchor"
+                  class="state-callout-text"
+                >
+                  {{ state.label.text }}
+                </text>
+              </ng-container>
+
+              <!-- Standard state labels placed in polygon center -->
+              <text
+                *ngIf="!state.label.hasLeaderLine"
+                [attr.x]="state.label.x"
+                [attr.y]="state.label.y"
+                [attr.text-anchor]="state.label.anchor"
+                [attr.fill]="getLabelColor(state)"
+                class="state-label"
+              >
+                {{ state.label.text }}
+              </text>
+            </ng-container>
+          </g>
+        </g>
+      </svg>
+
+      <!-- Dynamic Choropleth Legend Card -->
+      <div class="map-legend-card">
+        <div class="legend-header">
+          <span class="legend-metric">{{ getMetricLabel() }} Intensity</span>
+          <span class="legend-count">{{ metricExtremes().count }} Active States</span>
+        </div>
+        <div class="legend-scale-bar">
+          <span class="swatch no-data" matTooltip="No Transaction Data"></span>
+          <span class="swatch very-low" matTooltip="Very Low Intensity"></span>
+          <span class="swatch low" matTooltip="Low Intensity"></span>
+          <span class="swatch med" matTooltip="Medium Intensity"></span>
+          <span class="swatch high" matTooltip="High Intensity"></span>
+          <span class="swatch peak" matTooltip="Peak Intensity"></span>
+        </div>
+        <div class="legend-labels">
+          <span>₹0 / None</span>
+          <span>{{ formatLegendVal(metricExtremes().min) }}</span>
+          <span>{{ formatLegendVal((metricExtremes().min + metricExtremes().max) / 2) }}</span>
+          <span>{{ formatLegendVal(metricExtremes().max) }}</span>
+        </div>
+      </div>
+
+      <!-- Floating Hover Tooltip -->
+      <div
+        *ngIf="hoveredState()"
+        class="map-tooltip"
+        [style.left.px]="tooltipPos.x"
+        [style.top.px]="tooltipPos.y"
+      >
+        <div class="tooltip-header">
+          <div class="title-wrap">
+            <span class="state-title">{{ hoveredState()?.stateName }}</span>
+            <span class="state-badge">{{ hoveredState()?.stateCode }}</span>
+          </div>
+          <span class="metric-tag">{{ getMetricLabel() }}</span>
+        </div>
+
+        <div class="tooltip-metric highlight">
+          <span class="label">{{ getMetricLabel() }}:</span>
+          <strong class="val">{{ formatMetricValue(extractMetricValue(hoveredState(), selectedMetric())) }}</strong>
+        </div>
+
+        <div class="tooltip-divider"></div>
+
+        <div class="tooltip-grid">
+          <div class="grid-item">
+            <small>Customers:</small>
+            <span>{{ hoveredState()?.totalCustomers || 0 }}</span>
+          </div>
+          <div class="grid-item">
+            <small>Total Orders:</small>
+            <span>{{ hoveredState()?.totalOrders || 0 }}</span>
+          </div>
+          <div class="grid-item">
+            <small>Revenue:</small>
+            <span>₹{{ (hoveredState()?.totalRevenue || 0) | number }}</span>
+          </div>
+          <div class="grid-item">
+            <small>Gross Profit:</small>
+            <span class="profit-val">₹{{ (hoveredState()?.totalProfit || 0) | number }}</span>
+          </div>
+          <div class="grid-item">
+            <small>Units Sold:</small>
+            <span>{{ hoveredState()?.unitsSold || 0 }}</span>
+          </div>
+          <div class="grid-item">
+            <small>Avg Order Value:</small>
+            <span>₹{{ (hoveredState()?.averageOrderValue || 0) | number }}</span>
+          </div>
+          <div class="grid-item">
+            <small>Repeat Buyers:</small>
+            <span>{{ hoveredState()?.repeatCustomers || 0 }} ({{ hoveredState()?.repeatPurchaseRate || 0 }}%)</span>
+          </div>
+          <div class="grid-item">
+            <small>Rev Contribution:</small>
+            <span>{{ hoveredState()?.revenueContributionPct || 0 }}%</span>
+          </div>
+        </div>
+
+        <div class="tooltip-hint">
+          <span class="material-icons-round hint-icon">touch_app</span>
+          <span>Click state to focus & view detailed city distribution</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selected State Detail Side Panel -->
+    <div class="state-detail-panel" *ngIf="activeStateRecord(); else selectedNoDataPrompt">
+      <div class="panel-header">
+        <div>
+          <span class="panel-subtitle">State Performance Profile</span>
+          <h3 class="panel-title">{{ activeStateRecord()?.stateName }}</h3>
+        </div>
+        <span class="state-code-pill">{{ activeStateRecord()?.stateCode }}</span>
+      </div>
+
+      <div class="state-kpi-grid">
+        <div class="kpi-mini-card">
+          <span class="kpi-label">Revenue</span>
+          <span class="kpi-val text-primary">₹{{ activeStateRecord()?.totalRevenue | number }}</span>
+          <span class="kpi-sub">{{ activeStateRecord()?.revenueContributionPct }}% of DAMIRA India</span>
+        </div>
+
+        <div class="kpi-mini-card">
+          <span class="kpi-label">Total Orders</span>
+          <span class="kpi-val">{{ activeStateRecord()?.totalOrders | number }}</span>
+          <span class="kpi-sub">AOV: ₹{{ activeStateRecord()?.averageOrderValue | number }}</span>
+        </div>
+
+        <div class="kpi-mini-card">
+          <span class="kpi-label">Total Customers</span>
+          <span class="kpi-val">{{ activeStateRecord()?.totalCustomers | number }}</span>
+          <span class="kpi-sub">{{ activeStateRecord()?.newCustomers }} New Accounts</span>
+        </div>
+
+        <div class="kpi-mini-card">
+          <span class="kpi-label">Repeat Rate</span>
+          <span class="kpi-val text-accent">{{ activeStateRecord()?.repeatPurchaseRate }}%</span>
+          <span class="kpi-sub">{{ activeStateRecord()?.repeatCustomers }} Repeat Buyers</span>
+        </div>
+
+        <div class="kpi-mini-card">
+          <span class="kpi-label">Gross Profit</span>
+          <span class="kpi-val text-success">₹{{ activeStateRecord()?.totalProfit | number }}</span>
+          <span class="kpi-sub">{{ activeStateRecord()?.unitsSold }} Units Dispatched</span>
+        </div>
+      </div>
+
+      <div class="panel-actions">
+        <button
+          mat-flat-button
+          color="primary"
+          class="drilldown-btn"
+          (click)="drillDownToCities()"
+        >
+          <span class="material-icons-round">location_city</span>
+          <span>Drilldown to Cities & Pincodes</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Selected State with No Data Prompt -->
+    <ng-template #selectedNoDataPrompt>
+      <div class="state-detail-panel" *ngIf="selectedFeatureRecord(); else emptyStatePrompt">
+        <div class="panel-header">
+          <div>
+            <span class="panel-subtitle">State Performance Profile</span>
+            <h3 class="panel-title">{{ selectedFeatureRecord()?.name }}</h3>
+          </div>
+          <span class="state-code-pill">{{ selectedFeatureRecord()?.code }}</span>
+        </div>
+
+        <div class="no-data-card">
+          <span class="material-icons-round no-data-icon">history_toggle_off</span>
+          <h5>No Transactions Recorded</h5>
+          <p>
+            There are currently no active customer orders or shipments logged for
+            <strong>{{ selectedFeatureRecord()?.name }}</strong> under the selected date and channel filters.
+          </p>
+        </div>
+
+        <div class="panel-actions">
+          <button
+            mat-stroked-button
+            color="primary"
+            class="drilldown-btn"
+            (click)="clearStateSelection()"
+          >
+            <span class="material-icons-round">restart_alt</span>
+            <span>Return to All India View</span>
+          </button>
+        </div>
+      </div>
+    </ng-template>
+
+    <!-- Empty State Guide -->
+    <ng-template #emptyStatePrompt>
+      <div class="state-detail-panel empty">
+        <div class="empty-icon-wrap">
+          <span class="material-icons-round">public</span>
+        </div>
+        <h4>Explore India Performance</h4>
+        <p>
+          Hover over any of India's 36 states or Union Territories to inspect live
+          revenue, volume, and customer conversion. Click any state to focus on
+          its cities, pincodes, product demand, and channel breakdown.
+        </p>
+
+        <div class="guidance-features">
+          <div class="feature-item">
+            <span class="material-icons-round">mouse</span>
+            <span>Hover for live metrics</span>
+          </div>
+          <div class="feature-item">
+            <span class="material-icons-round">ads_click</span>
+            <span>Click to filter state</span>
+          </div>
+          <div class="feature-item">
+            <span class="material-icons-round">zoom_in</span>
+            <span>Zoom & pan freely</span>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </div>
+</div>

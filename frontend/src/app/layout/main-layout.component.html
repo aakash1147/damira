@@ -1,0 +1,110 @@
+    <div class="damira-shell" [class.sidebar-collapsed]="isSidebarCollapsed()">
+      <!-- SIDEBAR -->
+      <aside class="damira-sidebar">
+        <!-- Brand Header -->
+        <div class="brand-header">
+          <div class="brand-badge">D</div>
+          <div class="brand-text" *ngIf="!isSidebarCollapsed()">
+            <span class="brand-title">DAMIRA</span>
+            <span class="brand-subtitle">by Gupta</span>
+          </div>
+          <button class="toggle-btn" (click)="toggleSidebar()" title="Toggle Sidebar">
+            <span class="material-icons-round">{{ isSidebarCollapsed() ? 'chevron_right' : 'chevron_left' }}</span>
+          </button>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="sidebar-nav">
+          <ng-container *ngFor="let item of accessibleNavItems()">
+            <!-- Single Link -->
+            <a
+              *ngIf="!item.children"
+              [routerLink]="item.route"
+              routerLinkActive="active"
+              class="nav-link"
+              [title]="item.label"
+            >
+              <span class="material-icons-round nav-icon">{{ item.icon }}</span>
+              <span class="nav-label" *ngIf="!isSidebarCollapsed()">{{ item.label }}</span>
+            </a>
+
+            <!-- Group Header with Children -->
+            <div *ngIf="item.children" class="nav-group">
+              <div class="group-title" *ngIf="!isSidebarCollapsed()">
+                <span>{{ item.label }}</span>
+              </div>
+              <ng-container *ngFor="let child of item.children">
+                <a
+                  [routerLink]="child.route"
+                  routerLinkActive="active"
+                  class="nav-link sub-link"
+                  [title]="child.label"
+                >
+                  <span class="material-icons-round nav-icon">{{ child.icon }}</span>
+                  <span class="nav-label" *ngIf="!isSidebarCollapsed()">{{ child.label }}</span>
+                </a>
+              </ng-container>
+            </div>
+          </ng-container>
+        </nav>
+
+        <!-- Sidebar Footer / Version Info -->
+        <div class="sidebar-footer" *ngIf="!isSidebarCollapsed()">
+          <span class="version-tag">DAMIRA v1.0 Enterprise</span>
+        </div>
+      </aside>
+
+      <!-- MAIN WRAPPER -->
+      <div class="damira-main-wrapper">
+        <!-- TOPBAR -->
+        <header class="damira-topbar">
+          <div class="topbar-left">
+            <div class="workspace-badge">
+              <span class="pulse-dot"></span>
+              <span>Internal Enterprise Console</span>
+            </div>
+          </div>
+
+          <div class="topbar-right">
+            <!-- Notifications -->
+            <button mat-icon-button class="icon-btn" title="System Notifications">
+              <span class="material-icons-round">notifications_none</span>
+            </button>
+
+            <!-- User Menu -->
+            <div class="user-profile-widget" [matMenuTriggerFor]="userMenu">
+              <div class="avatar-circle">
+                {{ userInitials() }}
+              </div>
+              <div class="user-details">
+                <span class="user-name">{{ currentUser()?.fullName || currentUser()?.username }}</span>
+                <span class="user-role">{{ primaryRole() }}</span>
+              </div>
+              <span class="material-icons-round dropdown-arrow">arrow_drop_down</span>
+            </div>
+
+            <mat-menu #userMenu="matMenu" xPosition="before" class="damira-menu">
+              <div class="menu-header">
+                <strong>{{ currentUser()?.fullName }}</strong>
+                <small>{{ currentUser()?.email }}</small>
+              </div>
+              <mat-divider></mat-divider>
+              <button mat-menu-item routerLink="/dashboard">
+                <span class="material-icons-round">dashboard</span>
+                <span>Dashboard</span>
+              </button>
+              <button mat-menu-item (click)="logout()">
+                <span class="material-icons-round" style="color: #dc2626;">logout</span>
+                <span style="color: #dc2626;">Sign Out</span>
+              </button>
+            </mat-menu>
+          </div>
+        </header>
+
+        <!-- CONTENT AREA -->
+        <main class="damira-content-area">
+          <router-outlet></router-outlet>
+        </main>
+      </div>
+    </div>
+  

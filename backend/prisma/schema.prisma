@@ -1,0 +1,599 @@
+// Prisma Schema for DAMIRA by Gupta - Local SQLite Development Database
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------------------------
+// 1. ORGANIZATIONAL & EMPLOYEE MANAGEMENT
+// -------------------------------------------------------------
+
+model Department {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  code        String     @unique
+  description String?
+  isActive    Boolean    @default(true) @map("is_active")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  employees   Employee[]
+
+  @@map("departments")
+}
+
+model Designation {
+  id          String     @id @default(uuid())
+  title       String     @unique
+  code        String     @unique
+  description String?
+  isActive    Boolean    @default(true) @map("is_active")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  employees   Employee[]
+
+  @@map("designations")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  PROBATION
+  NOTICE_PERIOD
+  RESIGNED
+  TERMINATED
+  SUSPENDED
+}
+
+model Employee {
+  id                 String         @id @default(uuid())
+  employeeCode       String         @unique @map("employee_code")
+  firstName          String         @map("first_name")
+  lastName           String         @map("last_name")
+  email              String         @unique
+  mobile             String         @unique
+  altMobile          String?        @map("alt_mobile")
+  gender             Gender
+  dob                DateTime?
+  dateOfJoining      DateTime       @map("date_of_joining")
+  departmentId       String?        @map("department_id")
+  designationId      String?        @map("designation_id")
+  reportingManagerId String?        @map("reporting_manager_id")
+  status             EmployeeStatus @default(ACTIVE)
+  profileImageUrl    String?        @map("profile_image_url")
+  notes              String?
+  isDeleted          Boolean        @default(false) @map("is_deleted")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  department         Department?    @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  designation        Designation?   @relation(fields: [designationId], references: [id], onDelete: SetNull)
+  reportingManager   Employee?      @relation("ManagementHierarchy", fields: [reportingManagerId], references: [id], onDelete: SetNull)
+  subordinates       Employee[]     @relation("ManagementHierarchy")
+  userAccount        User?
+
+  @@index([departmentId])
+  @@index([designationId])
+  @@index([status])
+  @@index([isDeleted])
+  @@map("employees")
+}
+
+// -------------------------------------------------------------
+// 2. AUTHENTICATION & ACCESS CONTROL (RBAC)
+// -------------------------------------------------------------
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LOCKED
+  PENDING_ACTIVATION
+}
+
+model User {
+  id                   String        @id @default(uuid())
+  employeeId           String        @unique @map("employee_id")
+  username             String        @unique
+  email                String        @unique
+  passwordHash         String        @map("password_hash")
+  status               UserStatus    @default(ACTIVE)
+  lastLoginAt          DateTime?     @map("last_login_at")
+  lastLoginIp          String?       @map("last_login_ip")
+  failedLoginAttempts  Int           @default(0) @map("failed_login_attempts")
+  lockoutUntil         DateTime?     @map("lockout_until")
+  mustChangePassword   Boolean       @default(false) @map("must_change_password")
+  passwordChangedAt    DateTime?     @map("password_changed_at")
+  passwordResetToken   String?       @map("password_reset_token")
+  passwordResetExpires DateTime?     @map("password_reset_expires")
+  isDeleted            Boolean       @default(false) @map("is_deleted")
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+
+  employee             Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  userRoles            UserRole[]
+  refreshTokens        RefreshToken[]
+  auditLogs            AuditLog[]
+  customerImports      CustomerImport[]
+  createdCustomers     Customer[]    @relation("CustomerCreatedBy")
+  updatedCustomers     Customer[]    @relation("CustomerUpdatedBy")
+
+  @@index([status])
+  @@index([isDeleted])
+  @@map("users")
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  slug            String           @unique
+  description     String?
+  isSystemRole    Boolean          @default(false) @map("is_system_role")
+  isActive        Boolean          @default(true) @map("is_active")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @default(uuid())
+  module          String
+  action          String
+  slug            String           @unique
+  description     String?
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  rolePermissions RolePermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+model UserRole {
+  userId      String    @map("user_id")
+  roleId      String    @map("role_id")
+  assignedAt  DateTime  @default(now()) @map("assigned_at")
+  assignedBy  String?   @map("assigned_by")
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id")
+  permissionId String     @map("permission_id")
+  grantedAt    DateTime   @default(now()) @map("granted_at")
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model RefreshToken {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  tokenHash   String    @unique @map("token_hash")
+  deviceInfo  String?   @map("device_info")
+  ipAddress   String?   @map("ip_address")
+  isRevoked   Boolean   @default(false) @map("is_revoked")
+  expiresAt   DateTime  @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRevoked])
+  @@map("refresh_tokens")
+}
+
+// -------------------------------------------------------------
+// 3. MASTER DATA (GEOGRAPHIC & BUSINESS CLASSIFIERS)
+// -------------------------------------------------------------
+
+model Country {
+  id          String            @id @default(uuid())
+  name        String            @unique
+  iso2        String            @unique
+  iso3        String            @unique
+  phoneCode   String            @map("phone_code")
+  isActive    Boolean           @default(true) @map("is_active")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  states      State[]
+  addresses   CustomerAddress[]
+
+  @@map("countries")
+}
+
+model State {
+  id          String            @id @default(uuid())
+  countryId   String            @map("country_id")
+  name        String
+  code        String
+  gstCode     String?           @map("gst_code")
+  isActive    Boolean           @default(true) @map("is_active")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  country     Country           @relation(fields: [countryId], references: [id], onDelete: Restrict)
+  cities      City[]
+  addresses   CustomerAddress[]
+
+  @@unique([countryId, name])
+  @@unique([countryId, code])
+  @@index([countryId])
+  @@map("states")
+}
+
+model City {
+  id          String            @id @default(uuid())
+  stateId     String            @map("state_id")
+  name        String
+  isActive    Boolean           @default(true) @map("is_active")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  state       State             @relation(fields: [stateId], references: [id], onDelete: Restrict)
+  addresses   CustomerAddress[]
+
+  @@unique([stateId, name])
+  @@index([stateId])
+  @@map("cities")
+}
+
+model CustomerType {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  code        String     @unique
+  description String?
+  isActive    Boolean    @default(true) @map("is_active")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  customers   Customer[]
+
+  @@map("customer_types")
+}
+
+model AddressType {
+  id          String            @id @default(uuid())
+  name        String            @unique
+  code        String            @unique
+  description String?
+  isActive    Boolean           @default(true) @map("is_active")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  addresses   CustomerAddress[]
+
+  @@map("address_types")
+}
+
+// -------------------------------------------------------------
+// 4. CUSTOMER MANAGEMENT (CRM) & ADDRESSES
+// -------------------------------------------------------------
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  ARCHIVED
+}
+
+model Customer {
+  id                 String            @id @default(uuid())
+  customerCode       String            @unique @map("customer_code")
+  customerTypeId     String            @map("customer_type_id")
+  firstName          String            @map("first_name")
+  lastName           String            @map("last_name")
+  companyName        String?           @map("company_name")
+  email              String?
+  mobile             String
+  altMobile          String?           @map("alt_mobile")
+  gstin              String?
+  pan                String?
+  dob                DateTime?
+  gender             Gender?
+  source             String?
+  status             CustomerStatus    @default(ACTIVE)
+  notes              String?
+  createdById        String?           @map("created_by_id")
+  updatedById        String?           @map("updated_by_id")
+  isDeleted          Boolean           @default(false) @map("is_deleted")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+
+  customerType       CustomerType      @relation(fields: [customerTypeId], references: [id], onDelete: Restrict)
+  createdBy          User?             @relation("CustomerCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy          User?             @relation("CustomerUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  addresses          CustomerAddress[]
+  orders             Order[]
+
+  @@index([customerTypeId])
+  @@index([mobile])
+  @@index([email])
+  @@index([status])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@map("customers")
+}
+
+model CustomerAddress {
+  id                  String       @id @default(uuid())
+  customerId          String       @map("customer_id")
+  addressTypeId       String       @map("address_type_id")
+  addressLabel        String       @map("address_label")
+  contactPersonName   String?      @map("contact_person_name")
+  contactMobile       String?      @map("contact_mobile")
+  addressLine1        String       @map("address_line_1")
+  addressLine2        String?      @map("address_line_2")
+  landmark            String?
+  countryId           String       @map("country_id")
+  stateId             String       @map("state_id")
+  cityId              String       @map("city_id")
+  district            String?
+  postalCode          String       @map("postal_code")
+  isDefaultBilling    Boolean      @default(false) @map("is_default_billing")
+  isDefaultShipping   Boolean      @default(false) @map("is_default_shipping")
+  isActive            Boolean      @default(true) @map("is_active")
+  isDeleted           Boolean      @default(false) @map("is_deleted")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+
+  customer            Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  addressType         AddressType  @relation(fields: [addressTypeId], references: [id], onDelete: Restrict)
+  country             Country      @relation(fields: [countryId], references: [id], onDelete: Restrict)
+  state               State        @relation(fields: [stateId], references: [id], onDelete: Restrict)
+  city                City         @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  deliveryOrders      Order[]      @relation("OrderDeliveryAddress")
+  billingOrders       Order[]      @relation("OrderBillingAddress")
+
+  @@index([customerId])
+  @@index([addressTypeId])
+  @@index([postalCode])
+  @@index([isDeleted])
+  @@map("customer_addresses")
+}
+
+// -------------------------------------------------------------
+// 5. BULK CUSTOMER IMPORT & ERROR LOGGING
+// -------------------------------------------------------------
+
+enum ImportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  PARTIALLY_FAILED
+  FAILED
+}
+
+enum DuplicateStrategy {
+  SKIP
+  UPDATE
+  IMPORT_NEW
+}
+
+model CustomerImport {
+  id                String                 @id @default(uuid())
+  fileName          String                 @map("file_name")
+  fileSize          Int                    @map("file_size")
+  fileFormat        String                 @map("file_format")
+  duplicateStrategy DuplicateStrategy      @default(SKIP) @map("duplicate_strategy")
+  uploadedById      String                 @map("uploaded_by_id")
+  status            ImportStatus           @default(PENDING)
+  totalRecords      Int                    @default(0) @map("total_records")
+  successRecords    Int                    @default(0) @map("success_records")
+  failedRecords     Int                    @default(0) @map("failed_records")
+  errorReportUrl    String?                @map("error_report_url")
+  createdAt         DateTime               @default(now()) @map("created_at")
+  completedAt       DateTime?              @map("completed_at")
+
+  uploadedBy        User                   @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  errors            CustomerImportError[]
+
+  @@index([uploadedById])
+  @@index([status])
+  @@map("customer_imports")
+}
+
+model CustomerImportError {
+  id          String         @id @default(uuid())
+  importId    String         @map("import_id")
+  rowNumber   Int            @map("row_number")
+  rawRowData  Json           @map("raw_row_data")
+  errorCode   String         @map("error_code")
+  errorReason String         @map("error_reason")
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  import      CustomerImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([importId])
+  @@map("customer_import_errors")
+}
+
+// -------------------------------------------------------------
+// 6. SYSTEM AUDIT LOGGING
+// -------------------------------------------------------------
+
+model AuditLog {
+  id         String    @id @default(uuid())
+  userId     String?   @map("user_id")
+  action     String
+  module     String
+  recordId   String?   @map("record_id")
+  oldValues  Json?     @map("old_values")
+  newValues  Json?     @map("new_values")
+  ipAddress  String?   @map("ip_address")
+  userAgent  String?   @map("user_agent")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([module])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// -------------------------------------------------------------
+// 7. PRODUCTS, CHANNELS & ORDERS (COMMERCE & ANALYTICS)
+// -------------------------------------------------------------
+
+model ProductCategory {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  code        String    @unique
+  description String?
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  products    Product[]
+
+  @@map("product_categories")
+}
+
+model Product {
+  id          String           @id @default(uuid())
+  categoryId  String           @map("category_id")
+  name        String
+  sku         String           @unique
+  hsnCode     String?          @map("hsn_code")
+  description String?
+  basePrice   Float            @default(0) @map("base_price")
+  costPrice   Float            @default(0) @map("cost_price")
+  isActive    Boolean          @default(true) @map("is_active")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  category    ProductCategory  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  variants    ProductVariant[]
+
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductVariant {
+  id            String      @id @default(uuid())
+  productId     String      @map("product_id")
+  name          String
+  sku           String      @unique
+  weightGrams   Int?        @map("weight_grams")
+  mrp           Float       @default(0)
+  sellingPrice  Float       @default(0) @map("selling_price")
+  costPrice     Float       @default(0) @map("cost_price")
+  packagingCost Float       @default(0) @map("packaging_cost")
+  isActive      Boolean     @default(true) @map("is_active")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems    OrderItem[]
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model SalesChannel {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String   @unique
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  orders      Order[]
+
+  @@map("sales_channels")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+  REFUNDED
+}
+
+model Order {
+  id                String           @id @default(uuid())
+  orderNumber       String           @unique @map("order_number")
+  customerId        String           @map("customer_id")
+  deliveryAddressId String?          @map("delivery_address_id")
+  billingAddressId  String?          @map("billing_address_id")
+  channelId         String           @map("channel_id")
+  status            OrderStatus      @default(DELIVERED)
+  orderDate         DateTime         @default(now()) @map("order_date")
+  grossAmount       Float            @default(0) @map("gross_amount")
+  discountAmount    Float            @default(0) @map("discount_amount")
+  refundAmount      Float            @default(0) @map("refund_amount")
+  netAmount         Float            @default(0) @map("net_amount")
+  shippingCost      Float            @default(0) @map("shipping_cost")
+  packagingCost     Float            @default(0) @map("packaging_cost")
+  allocatedCost     Float            @default(0) @map("allocated_cost")
+  productCost       Float            @default(0) @map("product_cost")
+  grossProfit       Float            @default(0) @map("gross_profit")
+  profitMarginPct   Float            @default(0) @map("profit_margin_pct")
+  totalUnits        Int              @default(1) @map("total_units")
+  notes             String?
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  customer          Customer         @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  deliveryAddress   CustomerAddress? @relation("OrderDeliveryAddress", fields: [deliveryAddressId], references: [id], onDelete: SetNull)
+  billingAddress    CustomerAddress? @relation("OrderBillingAddress", fields: [billingAddressId], references: [id], onDelete: SetNull)
+  channel           SalesChannel     @relation(fields: [channelId], references: [id], onDelete: Restrict)
+  items             OrderItem[]
+
+  @@index([customerId])
+  @@index([deliveryAddressId])
+  @@index([channelId])
+  @@index([status])
+  @@index([orderDate])
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String         @id @default(uuid())
+  orderId    String         @map("order_id")
+  variantId  String         @map("variant_id")
+  quantity   Int            @default(1)
+  unitPrice  Float          @default(0) @map("unit_price")
+  unitCost   Float          @default(0) @map("unit_cost")
+  totalPrice Float          @default(0) @map("total_price")
+  totalCost  Float          @default(0) @map("total_cost")
+  discount   Float          @default(0)
+  netPrice   Float          @default(0) @map("net_price")
+  createdAt  DateTime       @default(now()) @map("created_at")
+
+  order      Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant    ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([variantId])
+  @@map("order_items")
+}

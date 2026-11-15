@@ -1,0 +1,42 @@
+<div class="trend-chart-card">
+  <div class="chart-header" *ngIf="title">
+    <div class="title-wrap">
+      <span class="material-icons-round header-icon" *ngIf="icon">{{ icon }}</span>
+      <h4 class="chart-title">{{ title }}</h4>
+    </div>
+    <span class="subtitle" *ngIf="subtitle">{{ subtitle }}</span>
+  </div>
+
+  <div class="trend-canvas-wrap">
+    <svg viewBox="0 0 500 160" class="trend-svg" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#7C3AED" stop-opacity="0.35" />
+          <stop offset="100%" stop-color="#7C3AED" stop-opacity="0.0" />
+        </linearGradient>
+      </defs>
+
+      <!-- Area fill -->
+      <path [attr.d]="areaPath" fill="url(#trendGrad)" />
+
+      <!-- Line path -->
+      <path [attr.d]="linePath" fill="none" stroke="#5B21B6" stroke-width="2.5" />
+
+      <!-- Data Points -->
+      <circle
+        *ngFor="let pt of renderedPoints"
+        [attr.cx]="pt.x"
+        [attr.cy]="pt.y"
+        r="4.5"
+        fill="#ffffff"
+        stroke="#5B21B6"
+        stroke-width="2.5"
+      />
+    </svg>
+
+    <!-- X-Axis Labels -->
+    <div class="x-axis-labels">
+      <span *ngFor="let pt of points">{{ pt.label }}</span>
+    </div>
+  </div>
+</div>

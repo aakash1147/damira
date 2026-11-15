@@ -1,0 +1,229 @@
+    <div class="page-container">
+      <!-- Breadcrumb & Header -->
+      <div class="page-header">
+        <div>
+          <div class="damira-breadcrumb">
+            <a routerLink="/dashboard">Dashboard</a>
+            <span class="separator">/</span>
+            <span>CRM</span>
+            <span class="separator">/</span>
+            <span class="current">Customers</span>
+          </div>
+          <h1 class="page-title">Customer Relationship Management</h1>
+          <p class="page-sub">Comprehensive directory of retail consumers, corporate clients, distributors and wholesalers.</p>
+        </div>
+
+        <div class="header-actions">
+          <!-- Export Buttons -->
+          <button (click)="exportExcel()" class="btn-export" title="Export current list to Excel (.xlsx)">
+            <span class="material-icons-round">table_view</span>
+            <span>Excel</span>
+          </button>
+          <button (click)="exportCsv()" class="btn-export" title="Export current list to CSV">
+            <span class="material-icons-round">description</span>
+            <span>CSV</span>
+          </button>
+
+          <!-- New Customer -->
+          <a
+            *hasPermission="['CUSTOMERS', 'CREATE']"
+            routerLink="/crm/customers/new"
+            class="btn-primary-action"
+          >
+            <span class="material-icons-round">person_add</span>
+            <span>New Customer</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Advanced Filter Toolbar -->
+      <div class="filter-toolbar">
+        <div class="search-box">
+          <span class="material-icons-round search-icon">search</span>
+          <input
+            type="text"
+            [(ngModel)]="searchQuery"
+            (keyup.enter)="onSearch()"
+            placeholder="Search by name, company, code, mobile, GSTIN..."
+            class="search-input"
+          />
+          <button *ngIf="searchQuery" (click)="clearSearch()" class="clear-btn">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+
+        <div class="filter-controls">
+          <!-- Type Filter -->
+          <select [(ngModel)]="typeFilter" (change)="onSearch()" class="filter-select">
+            <option value="">All Customer Types</option>
+            <option *ngFor="let t of customerTypes()" [value]="t.id">{{ t.name }}</option>
+          </select>
+
+          <!-- Status Filter -->
+          <select [(ngModel)]="statusFilter" (change)="onSearch()" class="filter-select">
+            <option value="">All Statuses</option>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+            <option value="BLOCKED">Blocked</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
+
+          <!-- Refresh -->
+          <button (click)="loadCustomers()" class="refresh-btn" title="Refresh">
+            <span class="material-icons-round">refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="isLoading()">
+        <mat-spinner diameter="36"></mat-spinner>
+        <span>Loading CRM directory...</span>
+      </div>
+
+      <!-- Customers Table -->
+      <div class="damira-table-container" *ngIf="!isLoading()">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Code</th>
+              <th>Contact Details</th>
+              <th>Type</th>
+              <th>Primary City & State</th>
+              <th>Tax Info</th>
+              <th>Status</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of customers()">
+              <!-- Customer Name & Company -->
+              <td>
+                <div class="customer-cell">
+                  <div class="avatar-sm">
+                    {{ c.firstName[0] }}{{ c.lastName[0] }}
+                  </div>
+                  <div class="cust-info">
+                    <a [routerLink]="['/crm/customers', c.id]" class="cust-name">
+                      {{ c.fullName }}
+                    </a>
+                    <span class="cust-company" *ngIf="c.companyName">{{ c.companyName }}</span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Code -->
+              <td>
+                <span class="code-badge">{{ c.customerCode }}</span>
+              </td>
+
+              <!-- Contact -->
+              <td>
+                <div class="contact-box">
+                  <span class="mobile">{{ c.mobile }}</span>
+                  <span class="email">{{ c.email || '-' }}</span>
+                </div>
+              </td>
+
+              <!-- Type -->
+              <td>
+                <span class="type-pill" [ngClass]="'type-' + c.customerTypeCode.toLowerCase()">
+                  {{ c.customerType }}
+                </span>
+              </td>
+
+              <!-- Location -->
+              <td>
+                <div class="location-box">
+                  <span class="city">{{ c.city }}</span>
+                  <span class="state">{{ c.state }}</span>
+                </div>
+              </td>
+
+              <!-- Tax / GSTIN -->
+              <td>
+                <div class="tax-box">
+                  <span class="gstin" *ngIf="c.gstin">GST: {{ c.gstin }}</span>
+                  <span class="pan" *ngIf="c.pan">PAN: {{ c.pan }}</span>
+                  <span class="none" *ngIf="!c.gstin && !c.pan">-</span>
+                </div>
+              </td>
+
+              <!-- Status -->
+              <td>
+                <span class="status-badge" [ngClass]="'status-' + c.status.toLowerCase()">
+                  {{ c.status }}
+                </span>
+              </td>
+
+              <!-- Actions -->
+              <td style="text-align: right;">
+                <button [matMenuTriggerFor]="actionMenu" class="action-icon-btn">
+                  <span class="material-icons-round">more_vert</span>
+                </button>
+                <mat-menu #actionMenu="matMenu" xPosition="before">
+                  <button mat-menu-item [routerLink]="['/crm/customers', c.id]">
+                    <span class="material-icons-round">person</span>
+                    <span>View Profile (6 Tabs)</span>
+                  </button>
+                  <button
+                    *hasPermission="['CUSTOMERS', 'EDIT']"
+                    mat-menu-item
+                    (click)="editCustomer(c.id)"
+                  >
+                    <span class="material-icons-round">edit</span>
+                    <span>Edit Profile</span>
+                  </button>
+                  <button
+                    *hasPermission="['CUSTOMERS', 'DELETE']"
+                    mat-menu-item
+                    (click)="archiveCustomer(c)"
+                    style="color: #dc2626;"
+                  >
+                    <span class="material-icons-round" style="color: #dc2626;">archive</span>
+                    <span>Archive Customer</span>
+                  </button>
+                </mat-menu>
+              </td>
+            </tr>
+
+            <!-- Empty State -->
+            <tr *ngIf="customers().length === 0">
+              <td colspan="8" class="empty-state">
+                <span class="material-icons-round empty-icon">people_alt</span>
+                <h3>No customers found</h3>
+                <p>Adjust your search criteria or register a new customer.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Pagination Bar -->
+        <div class="pagination-footer">
+          <div class="pagination-info">
+            Showing {{ (currentPage() - 1) * pageSize() + 1 }} -
+            {{ Math.min(currentPage() * pageSize(), totalRecords()) }} of
+            {{ totalRecords() }} customers
+          </div>
+          <div class="pagination-nav">
+            <button
+              [disabled]="currentPage() === 1"
+              (click)="changePage(currentPage() - 1)"
+              class="page-btn"
+            >
+              Previous
+            </button>
+            <span class="page-current">Page {{ currentPage() }} of {{ totalPages() }}</span>
+            <button
+              [disabled]="currentPage() >= totalPages()"
+              (click)="changePage(currentPage() + 1)"
+              class="page-btn"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  

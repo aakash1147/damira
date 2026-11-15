@@ -1,0 +1,85 @@
+    <div class="login-container">
+      <div class="login-card">
+        <!-- Brand Header -->
+        <div class="brand-section">
+          <div class="brand-logo-mark">D</div>
+          <h1 class="brand-title">DAMIRA</h1>
+          <span class="brand-sub">by Gupta</span>
+          <p class="portal-badge">Internal Business Management Portal</p>
+        </div>
+
+        <!-- Alert Error Banner -->
+        <div class="error-banner" *ngIf="errorMessage()">
+          <span class="material-icons-round">error_outline</span>
+          <span>{{ errorMessage() }}</span>
+        </div>
+
+        <!-- Login Form -->
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+          <div class="form-group">
+            <label class="form-label" for="username">Username or Email</label>
+            <div class="input-wrapper">
+              <span class="material-icons-round input-icon">person_outline</span>
+              <input
+                id="username"
+                type="text"
+                formControlName="username"
+                placeholder="e.g. superadmin"
+                autocomplete="username"
+                class="form-control"
+                [class.invalid]="isFieldInvalid('username')"
+              />
+            </div>
+            <span class="field-error" *ngIf="isFieldInvalid('username')">
+              Please enter your username or registered email.
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <div class="input-wrapper">
+              <span class="material-icons-round input-icon">lock_outline</span>
+              <input
+                id="password"
+                [type]="showPassword() ? 'text' : 'password'"
+                formControlName="password"
+                placeholder="••••••••••••"
+                autocomplete="current-password"
+                class="form-control"
+                [class.invalid]="isFieldInvalid('password')"
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                (click)="togglePasswordVisibility()"
+                tabindex="-1"
+              >
+                <span class="material-icons-round">
+                  {{ showPassword() ? 'visibility_off' : 'visibility' }}
+                </span>
+              </button>
+            </div>
+            <span class="field-error" *ngIf="isFieldInvalid('password')">
+              Password must be at least 6 characters.
+            </span>
+          </div>
+
+          <!-- Submit Button -->
+          <button
+            type="submit"
+            class="submit-btn"
+            [disabled]="isLoading() || loginForm.invalid"
+          >
+            <mat-spinner diameter="20" *ngIf="isLoading()"></mat-spinner>
+            <span *ngIf="!isLoading()">Sign In to Console</span>
+          </button>
+        </form>
+
+        <!-- Security Note -->
+        <div class="security-footer">
+          <span class="material-icons-round security-icon">shield</span>
+          <span>Authorized company personnel only. Access is monitored and audited.</span>
+        </div>
+      </div>
+    </div>
+  

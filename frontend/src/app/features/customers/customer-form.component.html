@@ -1,0 +1,155 @@
+    <div class="form-container">
+      <!-- Breadcrumb & Header -->
+      <div class="page-header">
+        <div class="damira-breadcrumb">
+          <a routerLink="/dashboard">Dashboard</a>
+          <span class="separator">/</span>
+          <a routerLink="/crm/customers">Customers</a>
+          <span class="separator">/</span>
+          <span class="current">Register Customer</span>
+        </div>
+        <h1 class="page-title">Register New Customer</h1>
+        <p class="page-sub">Onboard individual consumers, retail merchants, distributors, or corporate entities.</p>
+      </div>
+
+      <form [formGroup]="customerForm" (ngSubmit)="onSubmit()" class="form-layout">
+        <!-- Error Banner -->
+        <div class="alert-error" *ngIf="errorMessage()">
+          <span class="material-icons-round">error</span>
+          <span>{{ errorMessage() }}</span>
+        </div>
+
+        <!-- Section 1: Customer Identity -->
+        <div class="section-card">
+          <h2 class="section-title">
+            <span class="material-icons-round section-icon">person</span>
+            <span>Personal & Commercial Identity</span>
+          </h2>
+
+          <div class="grid-fields">
+            <div class="field-wrap">
+              <label class="field-label">Customer Type *</label>
+              <select formControlName="customerTypeId" class="form-input">
+                <option value="">Select Customer Classification</option>
+                <option *ngFor="let t of customerTypes()" [value]="t.id">{{ t.name }}</option>
+              </select>
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Customer Code</label>
+              <input type="text" formControlName="customerCode" placeholder="Auto-generated if left empty" class="form-input" />
+              <span class="field-hint">e.g. DAMIRA-CUST-1045</span>
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">First Name *</label>
+              <input type="text" formControlName="firstName" placeholder="e.g. Amit" class="form-input" />
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Last Name *</label>
+              <input type="text" formControlName="lastName" placeholder="e.g. Gupta" class="form-input" />
+            </div>
+
+            <div class="field-wrap full-width">
+              <label class="field-label">Registered Business / Company Name</label>
+              <input type="text" formControlName="companyName" placeholder="e.g. Gupta Retail Enterprises Pvt Ltd" class="form-input" />
+              <span class="field-hint">Required for B2B Wholesalers, Distributors, and Corporate accounts</span>
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Mobile Number *</label>
+              <input type="text" formControlName="mobile" placeholder="e.g. +919876543210" class="form-input" />
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Alternate Mobile</label>
+              <input type="text" formControlName="altMobile" placeholder="e.g. +919876543211" class="form-input" />
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Email Address</label>
+              <input type="email" formControlName="email" placeholder="e.g. amit@example.com" class="form-input" />
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Gender</label>
+              <select formControlName="gender" class="form-input">
+                <option value="">Prefer not to say</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Taxation & Source -->
+        <div class="section-card">
+          <h2 class="section-title">
+            <span class="material-icons-round section-icon">receipt_long</span>
+            <span>Tax Compliance & Lead Source</span>
+          </h2>
+
+          <div class="grid-fields">
+            <div class="field-wrap">
+              <label class="field-label">GSTIN (Indian GST Number)</label>
+              <input
+                type="text"
+                formControlName="gstin"
+                placeholder="15 Characters e.g. 07AAAAA0000A1Z5"
+                class="form-input uppercase"
+                maxlength="15"
+              />
+              <span class="field-hint">Validated against official Indian GST structure</span>
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Permanent Account Number (PAN)</label>
+              <input
+                type="text"
+                formControlName="pan"
+                placeholder="10 Characters e.g. ABCDE1234F"
+                class="form-input uppercase"
+                maxlength="10"
+              />
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Customer Source</label>
+              <select formControlName="source" class="form-input">
+                <option value="Direct">Direct Retail Walk-in</option>
+                <option value="Referral">Client Referral</option>
+                <option value="Trade Fair">Trade Exhibition / Fair</option>
+                <option value="Website">DAMIRA Online Store</option>
+                <option value="Sales Executive">Sales Representative Lead</option>
+              </select>
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Account Status</label>
+              <select formControlName="status" class="form-input">
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+                <option value="BLOCKED">Blocked</option>
+              </select>
+            </div>
+
+            <div class="field-wrap full-width">
+              <label class="field-label">Internal CRM Notes</label>
+              <textarea formControlName="notes" rows="2" placeholder="Credit terms, preferred delivery days, special instructions..." class="form-input textarea"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <a routerLink="/crm/customers" class="btn-cancel">Cancel</a>
+          <button type="submit" [disabled]="isLoading() || customerForm.invalid" class="btn-save">
+            <mat-spinner diameter="18" *ngIf="isLoading()"></mat-spinner>
+            <span *ngIf="!isLoading()">Save Customer Profile</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  

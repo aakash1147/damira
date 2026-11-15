@@ -1,0 +1,41 @@
+<div class="bar-chart-card">
+  <div class="chart-header" *ngIf="title">
+    <div class="title-wrap">
+      <span class="material-icons-round header-icon" *ngIf="icon">{{ icon }}</span>
+      <h4 class="chart-title">{{ title }}</h4>
+    </div>
+    <span class="subtitle" *ngIf="subtitle">{{ subtitle }}</span>
+  </div>
+
+  <div class="bars-container" [class.horizontal]="layout === 'horizontal'">
+    <div class="bar-row" *ngFor="let item of items; let i = index">
+      <div class="bar-info">
+        <span class="bar-rank" *ngIf="showRank">#{{ i + 1 }}</span>
+        <div class="label-group">
+          <span class="bar-label">{{ item.label }}</span>
+          <small class="bar-sublabel" *ngIf="item.sublabel">{{ item.sublabel }}</small>
+        </div>
+        <span class="bar-val font-bold">
+          {{ item.formattedValue || (item.value | number) }}
+        </span>
+      </div>
+
+      <div class="bar-track">
+        <div
+          class="bar-fill"
+          [style.width.%]="calcPercentage(item.value)"
+          [style.background-color]="item.color || defaultColor"
+        ></div>
+        <div
+          *ngIf="item.secondaryValue !== undefined"
+          class="bar-fill secondary"
+          [style.width.%]="calcPercentage(item.secondaryValue)"
+        ></div>
+      </div>
+
+      <span class="share-tag" *ngIf="item.sharePct !== undefined">
+        {{ item.sharePct }}%
+      </span>
+    </div>
+  </div>
+</div>

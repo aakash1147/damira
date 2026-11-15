@@ -1,0 +1,83 @@
+    <div class="page-container">
+      <!-- Header -->
+      <div class="page-header">
+        <div>
+          <div class="damira-breadcrumb">
+            <a routerLink="/dashboard">Dashboard</a>
+            <span class="separator">/</span>
+            <span>Company Management</span>
+            <span class="separator">/</span>
+            <span class="current">Roles & Permissions</span>
+          </div>
+          <h1 class="page-title">Role-Based Access Control (RBAC)</h1>
+          <p class="page-sub">Define corporate roles and granular module-action permissions matrix.</p>
+        </div>
+      </div>
+
+      <!-- Permissions Inspector Modal -->
+      <div class="modal-backdrop" *ngIf="inspectRole()">
+        <div class="modal-card">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">{{ inspectRole()?.name }}</h2>
+              <span class="modal-slug">{{ inspectRole()?.slug }} &bull; {{ inspectRole()?.permissions?.length }} Permissions</span>
+            </div>
+            <button class="close-btn" (click)="inspectRole.set(null)">
+              <span class="material-icons-round">close</span>
+            </button>
+          </div>
+
+          <p class="modal-desc">{{ inspectRole()?.description }}</p>
+
+          <div class="permissions-scroll-list">
+            <div *ngFor="let perm of inspectRole()?.permissions" class="perm-item">
+              <span class="perm-badge">{{ perm.module }}</span>
+              <span class="perm-slug">{{ perm.slug }}</span>
+              <span class="perm-desc">{{ perm.description }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Roles Grid -->
+      <div class="roles-grid" *ngIf="!isLoading()">
+        <div *ngFor="let role of roles()" class="role-card">
+          <div class="role-card-top">
+            <div class="role-icon-box" [class.system]="role.isSystemRole">
+              <span class="material-icons-round">
+                {{ role.slug === 'super-admin' ? 'stars' : 'verified_user' }}
+              </span>
+            </div>
+            <span class="system-tag" *ngIf="role.isSystemRole">System Builtin</span>
+          </div>
+
+          <h2 class="role-name">{{ role.name }}</h2>
+          <span class="role-slug">Slug: <code>{{ role.slug }}</code></span>
+          <p class="role-desc">{{ role.description || 'No description provided.' }}</p>
+
+          <div class="role-stats">
+            <div class="stat-item">
+              <span class="stat-val">{{ role.userCount }}</span>
+              <span class="stat-label">Users Assigned</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-val">{{ role.slug === 'super-admin' ? 'ALL' : role.permissionCount }}</span>
+              <span class="stat-label">Active Permissions</span>
+            </div>
+          </div>
+
+          <button class="view-perms-btn" (click)="viewRolePermissions(role.id)">
+            <span class="material-icons-round">visibility</span>
+            <span>Inspect Permissions</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="isLoading()">
+        <mat-spinner diameter="36"></mat-spinner>
+        <span>Loading RBAC schema...</span>
+      </div>
+    </div>
+  

@@ -1,0 +1,170 @@
+    <div class="page-container">
+      <!-- Header -->
+      <div class="page-header">
+        <div>
+          <div class="damira-breadcrumb">
+            <a routerLink="/dashboard">Dashboard</a>
+            <span class="separator">/</span>
+            <span>Master Data</span>
+            <span class="separator">/</span>
+            <span class="current">Geographic Master</span>
+          </div>
+          <h1 class="page-title">Geographical Master Data</h1>
+          <p class="page-sub">Centralized master registry of countries, Indian states with official GST codes, and cities.</p>
+        </div>
+
+        <div class="header-actions">
+          <button (click)="openAddModal()" class="btn-primary-action" *hasPermission="['MASTER_DATA', 'MANAGE']">
+            <span class="material-icons-round">add</span>
+            <span>Add {{ activeTab() === 'states' ? 'State' : 'City' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabs Bar -->
+      <div class="tabs-bar">
+        <button class="tab-btn" [class.active]="activeTab() === 'states'" (click)="activeTab.set('states')">
+          <span class="material-icons-round">map</span>
+          <span>Indian States & GST Codes ({{ states().length }})</span>
+        </button>
+        <button class="tab-btn" [class.active]="activeTab() === 'cities'" (click)="activeTab.set('cities')">
+          <span class="material-icons-round">location_city</span>
+          <span>Cities</span>
+        </button>
+        <button class="tab-btn" [class.active]="activeTab() === 'countries'" (click)="activeTab.set('countries')">
+          <span class="material-icons-round">public</span>
+          <span>Countries</span>
+        </button>
+      </div>
+
+      <!-- States View -->
+      <div class="damira-table-container" *ngIf="activeTab() === 'states'">
+        <table>
+          <thead>
+            <tr>
+              <th>State Name</th>
+              <th>State Code</th>
+              <th>GST State Code</th>
+              <th>Country</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of states()">
+              <td><strong>{{ s.name }}</strong></td>
+              <td><code>{{ s.code }}</code></td>
+              <td>
+                <span class="gst-code-badge" *ngIf="s.gstCode">GST Code: {{ s.gstCode }}</span>
+                <span *ngIf="!s.gstCode">-</span>
+              </td>
+              <td>{{ s.country?.name || 'India' }}</td>
+              <td>
+                <span class="status-badge status-active">Active</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Cities View -->
+      <div class="damira-table-container" *ngIf="activeTab() === 'cities'">
+        <table>
+          <thead>
+            <tr>
+              <th>City Name</th>
+              <th>State</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of cities()">
+              <td><strong>{{ c.name }}</strong></td>
+              <td>{{ c.state?.name }} ({{ c.state?.code }})</td>
+              <td>
+                <span class="status-badge status-active">Active</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Countries View -->
+      <div class="damira-table-container" *ngIf="activeTab() === 'countries'">
+        <table>
+          <thead>
+            <tr>
+              <th>Country Name</th>
+              <th>ISO2</th>
+              <th>ISO3</th>
+              <th>Dial Code</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let co of countries()">
+              <td><strong>{{ co.name }}</strong></td>
+              <td><code>{{ co.iso2 }}</code></td>
+              <td><code>{{ co.iso3 }}</code></td>
+              <td>{{ co.phoneCode }}</td>
+              <td>
+                <span class="status-badge status-active">Active</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Add Modal Dialog -->
+      <div class="modal-backdrop" *ngIf="showAddModal()">
+        <div class="modal-dialog-card">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">Add New {{ activeTab() === 'states' ? 'State' : 'City' }}</h2>
+              <span class="modal-sub">Add master data record without modifying code.</span>
+            </div>
+            <button class="close-btn" (click)="showAddModal.set(false)">
+              <span class="material-icons-round">close</span>
+            </button>
+          </div>
+
+          <form [formGroup]="geoForm" (ngSubmit)="submitNewRecord()" class="modal-form">
+            <!-- State Fields -->
+            <ng-container *ngIf="activeTab() === 'states'">
+              <div class="field-item">
+                <label class="field-label">State Name *</label>
+                <input type="text" formControlName="name" placeholder="e.g. Goa" class="form-input" />
+              </div>
+              <div class="field-item">
+                <label class="field-label">State Code (2 Chars) *</label>
+                <input type="text" formControlName="code" placeholder="e.g. GA" class="form-input" maxlength="4" />
+              </div>
+              <div class="field-item">
+                <label class="field-label">Official GST State Code (2 Digits)</label>
+                <input type="text" formControlName="gstCode" placeholder="e.g. 30" class="form-input" maxlength="2" />
+              </div>
+            </ng-container>
+
+            <!-- City Fields -->
+            <ng-container *ngIf="activeTab() === 'cities'">
+              <div class="field-item">
+                <label class="field-label">Belongs to State *</label>
+                <select formControlName="stateId" class="form-input">
+                  <option value="">Select State</option>
+                  <option *ngFor="let s of states()" [value]="s.id">{{ s.name }}</option>
+                </select>
+              </div>
+              <div class="field-item">
+                <label class="field-label">City Name *</label>
+                <input type="text" formControlName="name" placeholder="e.g. Panaji" class="form-input" />
+              </div>
+            </ng-container>
+
+            <div class="dialog-actions">
+              <button type="button" class="btn-cancel" (click)="showAddModal.set(false)">Cancel</button>
+              <button type="submit" [disabled]="geoForm.invalid" class="btn-save">Save Master Record</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  

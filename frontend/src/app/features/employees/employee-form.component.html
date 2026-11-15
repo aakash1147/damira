@@ -1,0 +1,184 @@
+    <div class="form-page-container">
+      <!-- Header -->
+      <div class="form-header">
+        <div class="damira-breadcrumb">
+          <a routerLink="/dashboard">Dashboard</a>
+          <span class="separator">/</span>
+          <a routerLink="/company/employees">Employees</a>
+          <span class="separator">/</span>
+          <span class="current">Onboard Employee</span>
+        </div>
+        <h1 class="page-title">Onboard New Employee</h1>
+        <p class="page-sub">Enter employee personal and organizational profile data. Optionally provision a linked internal user account.</p>
+      </div>
+
+      <!-- Credential Modal Success Popup -->
+      <div class="credential-modal-backdrop" *ngIf="credentialsGenerated()">
+        <div class="credential-modal-card">
+          <div class="modal-badge-success">
+            <span class="material-icons-round">vpn_key</span>
+          </div>
+          <h2 class="modal-title">Employee Account Provisioned!</h2>
+          <p class="modal-sub">
+            The login account for <strong>{{ createdEmployeeName() }}</strong> has been created. Securely share these temporary credentials with the employee:
+          </p>
+
+          <div class="credential-box">
+            <div class="cred-row">
+              <span class="cred-label">Username:</span>
+              <span class="cred-val">{{ credentialsGenerated()?.username }}</span>
+            </div>
+            <div class="cred-row">
+              <span class="cred-label">Temporary Password:</span>
+              <span class="cred-val password">{{ credentialsGenerated()?.temporaryPassword }}</span>
+            </div>
+          </div>
+
+          <p class="warning-text">
+            * The employee will be forced to change this temporary password upon first login.
+          </p>
+
+          <div class="modal-actions">
+            <button class="btn-primary" (click)="dismissCredentialsAndRedirect()">
+              Done & Return to Directory
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Form -->
+      <form [formGroup]="employeeForm" (ngSubmit)="onSubmit()" class="employee-form-layout">
+        <!-- Error Alert -->
+        <div class="form-alert error" *ngIf="errorMessage()">
+          <span class="material-icons-round">error</span>
+          <span>{{ errorMessage() }}</span>
+        </div>
+
+        <!-- Section 1: Personal & Identity -->
+        <div class="form-section-card">
+          <h2 class="section-title">
+            <span class="material-icons-round section-icon">badge</span>
+            <span>Personal & Contact Identity</span>
+          </h2>
+
+          <div class="fields-grid">
+            <div class="field-wrap">
+              <label class="field-label">Employee Code *</label>
+              <input type="text" formControlName="employeeCode" placeholder="e.g. DAMIRA-EMP-005" class="form-input" />
+              <span class="field-hint">Must be unique across the organization</span>
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">First Name *</label>
+              <input type="text" formControlName="firstName" placeholder="e.g. Rahul" class="form-input" />
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Last Name *</label>
+              <input type="text" formControlName="lastName" placeholder="e.g. Sharma" class="form-input" />
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Official Email Address *</label>
+              <input type="email" formControlName="email" placeholder="e.g. rahul.sharma@damira.com" class="form-input" />
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Mobile Number *</label>
+              <input type="text" formControlName="mobile" placeholder="e.g. +919812345678" class="form-input" />
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Alternate Mobile</label>
+              <input type="text" formControlName="altMobile" placeholder="e.g. +919812345679" class="form-input" />
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Gender *</label>
+              <select formControlName="gender" class="form-input">
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Date of Birth</label>
+              <input type="date" formControlName="dob" class="form-input" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Organizational Profile -->
+        <div class="form-section-card">
+          <h2 class="section-title">
+            <span class="material-icons-round section-icon">business</span>
+            <span>Organization & Hierarchy</span>
+          </h2>
+
+          <div class="fields-grid">
+            <div class="field-wrap">
+              <label class="field-label">Date of Joining *</label>
+              <input type="date" formControlName="dateOfJoining" class="form-input" />
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Employee Status *</label>
+              <select formControlName="status" class="form-input">
+                <option value="ACTIVE">Active</option>
+                <option value="PROBATION">Probation</option>
+                <option value="NOTICE_PERIOD">Notice Period</option>
+              </select>
+            </div>
+
+            <div class="field-wrap full-width">
+              <label class="field-label">HR / Employment Notes</label>
+              <textarea formControlName="notes" rows="3" placeholder="Additional background, qualifications, or remarks..." class="form-input textarea"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Linked Login Account -->
+        <div class="form-section-card account-card">
+          <div class="account-header">
+            <div>
+              <h2 class="section-title">
+                <span class="material-icons-round section-icon">lock</span>
+                <span>Internal System Access Account</span>
+              </h2>
+              <p class="account-sub">Grant this employee secure login privileges to the DAMIRA internal portal.</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" formControlName="createLoginAccount" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="fields-grid" *ngIf="employeeForm.get('createLoginAccount')?.value" style="margin-top: 1.25rem;">
+            <div class="field-wrap">
+              <label class="field-label">Username</label>
+              <input type="text" formControlName="username" placeholder="Defaults to employee code or email" class="form-input" />
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label">Assign Primary Role *</label>
+              <select formControlName="roleSlug" class="form-input">
+                <option value="employee">Employee (Operational Access)</option>
+                <option value="manager">Manager (Department Oversight)</option>
+                <option value="admin">Admin (System Administrator)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions-bar">
+          <a routerLink="/company/employees" class="btn-cancel">Cancel</a>
+          <button type="submit" [disabled]="isLoading() || employeeForm.invalid" class="btn-save">
+            <mat-spinner diameter="18" *ngIf="isLoading()"></mat-spinner>
+            <span *ngIf="!isLoading()">Onboard Employee</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  

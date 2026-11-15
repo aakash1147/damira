@@ -1,0 +1,104 @@
+    <div class="page-container">
+      <div class="page-header">
+        <div>
+          <div class="damira-breadcrumb">
+            <a routerLink="/dashboard">Dashboard</a>
+            <span class="separator">/</span>
+            <span>Master Data</span>
+            <span class="separator">/</span>
+            <span class="current">Organization & CRM Classifiers</span>
+          </div>
+          <h1 class="page-title">Classification Master Data</h1>
+          <p class="page-sub">Dynamic enterprise master registries: Departments, Designations, Customer Types, and Address Types.</p>
+        </div>
+
+        <div class="header-actions">
+          <button (click)="openAddModal()" class="btn-primary-action" *hasPermission="['MASTER_DATA', 'MANAGE']">
+            <span class="material-icons-round">add</span>
+            <span>Add {{ getActiveTabTitle() }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabs Bar -->
+      <div class="tabs-bar">
+        <button class="tab-btn" [class.active]="activeTab() === 'departments'" (click)="activeTab.set('departments')">
+          <span class="material-icons-round">corporate_fare</span>
+          <span>Departments</span>
+        </button>
+        <button class="tab-btn" [class.active]="activeTab() === 'designations'" (click)="activeTab.set('designations')">
+          <span class="material-icons-round">work</span>
+          <span>Designations</span>
+        </button>
+        <button class="tab-btn" [class.active]="activeTab() === 'customer-types'" (click)="activeTab.set('customer-types')">
+          <span class="material-icons-round">groups</span>
+          <span>Customer Types</span>
+        </button>
+        <button class="tab-btn" [class.active]="activeTab() === 'address-types'" (click)="activeTab.set('address-types')">
+          <span class="material-icons-round">category</span>
+          <span>Address Types</span>
+        </button>
+      </div>
+
+      <!-- Data Table -->
+      <div class="damira-table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Title / Name</th>
+              <th>System Code</th>
+              <th>Description</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of currentList()">
+              <td><strong>{{ item.name || item.title }}</strong></td>
+              <td><code>{{ item.code }}</code></td>
+              <td>{{ item.description || '-' }}</td>
+              <td>
+                <span class="status-badge status-active">Active</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Add Modal -->
+      <div class="modal-backdrop" *ngIf="showAddModal()">
+        <div class="modal-card">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">Add {{ getActiveTabTitle() }}</h2>
+              <span class="modal-sub">Create master data record with unique code.</span>
+            </div>
+            <button class="close-btn" (click)="showAddModal.set(false)">
+              <span class="material-icons-round">close</span>
+            </button>
+          </div>
+
+          <form [formGroup]="orgForm" (ngSubmit)="submitItem()" class="modal-form">
+            <div class="field-item">
+              <label class="field-label">Name / Title *</label>
+              <input type="text" formControlName="name" placeholder="e.g. Regional Wholesaler" class="form-input" />
+            </div>
+
+            <div class="field-item">
+              <label class="field-label">Code (Unique identifier) *</label>
+              <input type="text" formControlName="code" placeholder="e.g. REGIONAL_WHOLESALER" class="form-input" />
+            </div>
+
+            <div class="field-item">
+              <label class="field-label">Description</label>
+              <textarea formControlName="description" rows="3" placeholder="Brief description..." class="form-input textarea"></textarea>
+            </div>
+
+            <div class="dialog-actions">
+              <button type="button" class="btn-cancel" (click)="showAddModal.set(false)">Cancel</button>
+              <button type="submit" [disabled]="orgForm.invalid" class="btn-save">Save Master Record</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  

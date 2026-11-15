@@ -1,0 +1,281 @@
+    .damira-shell {
+      display: flex;
+      min-height: 100vh;
+      background-color: var(--damira-bg);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* SIDEBAR */
+    .damira-sidebar {
+      width: 260px;
+      background: #ffffff;
+      border-right: 1px solid var(--damira-border);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      z-index: 100;
+      transition: width 0.25s ease;
+    }
+
+    .sidebar-collapsed .damira-sidebar {
+      width: 72px;
+    }
+
+    .brand-header {
+      height: 64px;
+      padding: 0 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid var(--damira-border);
+    }
+
+    .brand-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--damira-primary), var(--damira-primary-light));
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(91, 33, 182, 0.3);
+      flex-shrink: 0;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+
+      .brand-title {
+        font-weight: 800;
+        font-size: 1.1rem;
+        letter-spacing: 0.05em;
+        color: var(--damira-primary);
+      }
+
+      .brand-subtitle {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--damira-text-muted);
+        letter-spacing: 0.1em;
+      }
+    }
+
+    .toggle-btn {
+      background: transparent;
+      border: none;
+      color: var(--damira-text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 4px;
+      border-radius: 6px;
+
+      &:hover {
+        background-color: var(--damira-primary-surface);
+        color: var(--damira-primary);
+      }
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 1rem 0.5rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .group-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--damira-text-muted);
+      padding: 0.75rem 0.75rem 0.35rem 0.75rem;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+      padding: 0.625rem 0.75rem;
+      border-radius: 8px;
+      color: var(--damira-text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.875rem;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background-color: var(--damira-primary-surface);
+        color: var(--damira-primary);
+      }
+
+      &.active {
+        background-color: var(--damira-primary);
+        color: #ffffff;
+
+        .nav-icon {
+          color: #ffffff;
+        }
+      }
+
+      .nav-icon {
+        font-size: 20px;
+        color: var(--damira-text-muted);
+        transition: color 0.15s ease;
+      }
+    }
+
+    .sidebar-collapsed .nav-link {
+      justify-content: center;
+      padding: 0.75rem;
+    }
+
+    .sidebar-footer {
+      padding: 1rem;
+      border-top: 1px solid var(--damira-border);
+      text-align: center;
+
+      .version-tag {
+        font-size: 0.7rem;
+        color: var(--damira-text-muted);
+        font-weight: 600;
+      }
+    }
+
+    /* MAIN WRAPPER */
+    .damira-main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    /* TOPBAR */
+    .damira-topbar {
+      height: 64px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--damira-border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 90;
+    }
+
+    .workspace-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--damira-primary-surface);
+      color: var(--damira-primary);
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+
+      .pulse-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: var(--damira-primary);
+      }
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .icon-btn {
+      color: var(--damira-text-secondary);
+    }
+
+    .user-profile-widget {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      cursor: pointer;
+      padding: 0.35rem 0.5rem;
+      border-radius: 8px;
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: var(--damira-bg);
+      }
+    }
+
+    .avatar-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #7c3aed, #5b21b6);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .user-details {
+      display: flex;
+      flex-direction: column;
+
+      .user-name {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--damira-text-primary);
+      }
+
+      .user-role {
+        font-size: 0.7rem;
+        color: var(--damira-text-muted);
+        text-transform: capitalize;
+      }
+    }
+
+    .dropdown-arrow {
+      color: var(--damira-text-muted);
+    }
+
+    .menu-header {
+      padding: 0.75rem 1rem;
+      display: flex;
+      flex-direction: column;
+
+      strong {
+        font-size: 0.875rem;
+        color: var(--damira-text-primary);
+      }
+
+      small {
+        font-size: 0.75rem;
+        color: var(--damira-text-muted);
+      }
+    }
+
+    /* CONTENT AREA */
+    .damira-content-area {
+      flex: 1;
+      padding: 2rem;
+      background-color: var(--damira-bg);
+      max-width: 1600px;
+      width: 100%;
+      margin: 0 auto;
+    }
+  
