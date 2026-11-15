@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { CustomerListItem, CustomerProfile, CustomerAddress } from './customer.model';
+import { PaginatedResponse } from '../../core/models/api-response.model';
 
 @Injectable({
   providedIn: 'root',
@@ -21,7 +22,7 @@ export class CustomerService {
     cityId?: string;
     fromDate?: string;
     toDate?: string;
-  }): Observable<{ data: CustomerListItem[]; meta: any }> {
+  }): Observable<PaginatedResponse<CustomerListItem>> {
     let httpParams = new HttpParams();
     Object.keys(params).forEach((key) => {
       const val = (params as any)[key];
@@ -30,7 +31,7 @@ export class CustomerService {
       }
     });
 
-    return this.http.get<{ data: CustomerListItem[]; meta: any }>(this.API_URL, {
+    return this.http.get<PaginatedResponse<CustomerListItem>>(this.API_URL, {
       params: httpParams,
     });
   }

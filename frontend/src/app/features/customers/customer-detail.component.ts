@@ -88,7 +88,7 @@ export class CustomerDetailComponent implements OnInit {
 
     // States
     this.http.get<any>(`${environment.apiUrl}/master-data/states`).subscribe({
-      next: (res) => this.states.set(res.data || []),
+      next: (res) => this.states.set(res || []),
     });
   }
 
@@ -96,7 +96,7 @@ export class CustomerDetailComponent implements OnInit {
     const stateId = this.addressForm.get('stateId')?.value;
     if (stateId) {
       this.http.get<any>(`${environment.apiUrl}/master-data/cities?stateId=${stateId}`).subscribe({
-        next: (res) => this.cities.set(res.data || []),
+        next: (res) => this.cities.set(res || []),
       });
     }
   }

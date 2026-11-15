@@ -100,8 +100,6 @@ export const routes: Routes = [
       },
       {
         path: 'analytics/market-intelligence',
-        canActivate: [permissionGuard],
-        data: { module: 'ANALYTICS', action: 'VIEW_GEO' },
         loadComponent: () =>
           import(
             './features/market-intelligence/market-intelligence-dashboard.component'

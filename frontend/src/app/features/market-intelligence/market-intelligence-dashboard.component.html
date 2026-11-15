@@ -54,6 +54,10 @@
         </div>
       </div>
 
+      <div class="analytics-error-banner" *ngIf="analyticsErrorMessages().length">
+        <div *ngFor="let message of analyticsErrorMessages()">{{ message }}</div>
+      </div>
+
       <!-- GLOBAL FILTER SYSTEM (SECTION 3) -->
       <div class="filter-drawer" *ngIf="isFilterOpen()">
         <form [formGroup]="filterForm" (ngSubmit)="applyFilters()" class="filter-form-grid">
@@ -208,11 +212,11 @@
           </div>
           <div class="card-content">
             <span class="card-label">Total Net Revenue</span>
-            <span class="card-value">₹{{ (overview()?.totalRevenue || 0) | number }}</span>
+            <span class="card-value">₹{{ overview() ? ((overview()?.totalRevenue ?? 0) | number) : '—' }}</span>
             <div class="card-footer">
               <span class="card-trend positive">
                 <span class="material-icons-round">trending_up</span>
-                {{ overview()?.financials?.profitMarginPct || 0 }}% Gross Margin
+                {{ overview() ? (overview()?.financials?.profitMarginPct ?? 0) : '—' }}% Gross Margin
               </span>
             </div>
           </div>
@@ -225,9 +229,9 @@
           </div>
           <div class="card-content">
             <span class="card-label">Total Commercial Orders</span>
-            <span class="card-value">{{ (overview()?.totalOrders || 0) | number }}</span>
+            <span class="card-value">{{ overview() ? ((overview()?.totalOrders ?? 0) | number) : '—' }}</span>
             <div class="card-footer">
-              <span class="card-subtext">AOV: ₹{{ (overview()?.averageOrderValue || 0) | number }}</span>
+              <span class="card-subtext">AOV: ₹{{ overview() ? ((overview()?.averageOrderValue ?? 0) | number) : '—' }}</span>
             </div>
           </div>
         </div>
@@ -239,9 +243,9 @@
           </div>
           <div class="card-content">
             <span class="card-label">Registered Customers</span>
-            <span class="card-value">{{ (overview()?.totalCustomers || 0) | number }}</span>
+            <span class="card-value">{{ overview() ? ((overview()?.totalCustomers ?? 0) | number) : '—' }}</span>
             <div class="card-footer">
-              <span class="card-subtext">{{ overview()?.customersWithOrders || 0 }} With Orders • {{ overview()?.customersWithoutOrders || 0 }} Untransacted</span>
+              <span class="card-subtext">{{ overview() ? (overview()?.customersWithOrders ?? 0) : '—' }} With Orders • {{ overview() ? (overview()?.customersWithoutOrders ?? 0) : '—' }} Untransacted</span>
             </div>
           </div>
         </div>
@@ -253,7 +257,7 @@
           </div>
           <div class="card-content">
             <span class="card-label">Units Dispatched</span>
-            <span class="card-value">{{ (overview()?.totalUnitsSold || 0) | number }}</span>
+            <span class="card-value">{{ overview() ? ((overview()?.totalUnitsSold ?? 0) | number) : '—' }}</span>
             <div class="card-footer">
               <span class="card-subtext">Saffron, Mamra Almonds, Walnuts & Honey</span>
             </div>
@@ -267,7 +271,7 @@
           </div>
           <div class="card-content">
             <span class="card-label">Average Order Value (AOV)</span>
-            <span class="card-value">₹{{ (overview()?.averageOrderValue || 0) | number }}</span>
+            <span class="card-value">₹{{ overview() ? ((overview()?.averageOrderValue ?? 0) | number) : '—' }}</span>
             <div class="card-footer">
               <span class="card-subtext">Net Sales / Dispatched Consignments</span>
             </div>
@@ -281,7 +285,7 @@
           </div>
           <div class="card-content">
             <span class="card-label">Repeat Customers</span>
-            <span class="card-value">{{ (overview()?.repeatCustomers || 0) | number }}</span>
+            <span class="card-value">{{ overview() ? ((overview()?.repeatCustomers ?? 0) | number) : '—' }}</span>
             <div class="card-footer">
               <span class="card-subtext">Placed 2 or more orders</span>
             </div>
@@ -295,7 +299,7 @@
           </div>
           <div class="card-content">
             <span class="card-label">Repeat Purchase Rate</span>
-            <span class="card-value">{{ overview()?.repeatPurchaseRate || 0 }}%</span>
+            <span class="card-value">{{ overview() ? (overview()?.repeatPurchaseRate ?? 0) : '—' }}%</span>
             <div class="card-footer">
               <span class="card-trend positive">Repeat / Ordering Customers</span>
             </div>
@@ -309,7 +313,7 @@
           </div>
           <div class="card-content">
             <span class="card-label">Avg Orders / Customer</span>
-            <span class="card-value">{{ overview()?.averageOrdersPerCustomer || 0 }}</span>
+            <span class="card-value">{{ overview() ? (overview()?.averageOrdersPerCustomer ?? 0) : '—' }}</span>
             <div class="card-footer">
               <span class="card-subtext">Across active buying accounts</span>
             </div>
@@ -418,27 +422,27 @@
             <div class="sub-kpi-strip">
               <div class="mini-kpi">
                 <span class="label">States with Customers</span>
-                <span class="val">{{ stateData()?.kpiCards?.totalStatesWithCustomers || 0 }}</span>
+                <span class="val">{{ stateData() ? (stateData()?.kpiCards?.totalStatesWithCustomers ?? 0) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Total Orders</span>
-                <span class="val">{{ stateData()?.kpiCards?.totalOrders || 0 }}</span>
+                <span class="val">{{ stateData() ? (stateData()?.kpiCards?.totalOrders ?? 0) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Total Customers</span>
-                <span class="val">{{ stateData()?.kpiCards?.totalCustomers || 0 }}</span>
+                <span class="val">{{ stateData() ? (stateData()?.kpiCards?.totalCustomers ?? 0) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Total Revenue</span>
-                <span class="val text-primary">₹{{ (stateData()?.kpiCards?.totalRevenue || 0) | number }}</span>
+                <span class="val text-primary">₹{{ stateData() ? ((stateData()?.kpiCards?.totalRevenue ?? 0) | number) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Total Profit</span>
-                <span class="val text-success">₹{{ (stateData()?.kpiCards?.totalProfit || 0) | number }}</span>
+                <span class="val text-success">₹{{ stateData() ? ((stateData()?.kpiCards?.totalProfit ?? 0) | number) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Average Order Value</span>
-                <span class="val">₹{{ (stateData()?.kpiCards?.averageOrderValue || 0) | number }}</span>
+                <span class="val">₹{{ stateData() ? ((stateData()?.kpiCards?.averageOrderValue ?? 0) | number) : '—' }}</span>
               </div>
             </div>
 
@@ -568,27 +572,27 @@
             <div class="sub-kpi-strip">
               <div class="mini-kpi">
                 <span class="label">Cities with Customers</span>
-                <span class="val">{{ cityData()?.kpiCards?.totalCitiesWithCustomers || 0 }}</span>
+                <span class="val">{{ cityData() ? (cityData()?.kpiCards?.totalCitiesWithCustomers ?? 0) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Total Customers</span>
-                <span class="val">{{ cityData()?.kpiCards?.totalCustomers || 0 }}</span>
+                <span class="val">{{ cityData() ? (cityData()?.kpiCards?.totalCustomers ?? 0) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Total Orders</span>
-                <span class="val">{{ cityData()?.kpiCards?.totalOrders || 0 }}</span>
+                <span class="val">{{ cityData() ? (cityData()?.kpiCards?.totalOrders ?? 0) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Total Revenue</span>
-                <span class="val text-primary">₹{{ (cityData()?.kpiCards?.totalRevenue || 0) | number }}</span>
+                <span class="val text-primary">₹{{ cityData() ? ((cityData()?.kpiCards?.totalRevenue ?? 0) | number) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Total Profit</span>
-                <span class="val text-success">₹{{ (cityData()?.kpiCards?.totalProfit || 0) | number }}</span>
+                <span class="val text-success">₹{{ cityData() ? ((cityData()?.kpiCards?.totalProfit ?? 0) | number) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Average Order Value</span>
-                <span class="val">₹{{ (cityData()?.kpiCards?.averageOrderValue || 0) | number }}</span>
+                <span class="val">₹{{ cityData() ? ((cityData()?.kpiCards?.averageOrderValue ?? 0) | number) : '—' }}</span>
               </div>
             </div>
 
@@ -718,23 +722,23 @@
             <div class="sub-kpi-strip">
               <div class="mini-kpi">
                 <span class="label">Total Active Pincodes</span>
-                <span class="val">{{ pincodeData()?.kpiCards?.totalActivePincodes || 0 }}</span>
+                <span class="val">{{ pincodeData() ? (pincodeData()?.kpiCards?.totalActivePincodes ?? 0) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Customers in Pincodes</span>
-                <span class="val">{{ pincodeData()?.kpiCards?.totalCustomers || 0 }}</span>
+                <span class="val">{{ pincodeData() ? (pincodeData()?.kpiCards?.totalCustomers ?? 0) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Orders Delivered</span>
-                <span class="val">{{ pincodeData()?.kpiCards?.totalOrders || 0 }}</span>
+                <span class="val">{{ pincodeData() ? (pincodeData()?.kpiCards?.totalOrders ?? 0) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Net Revenue</span>
-                <span class="val text-primary">₹{{ (pincodeData()?.kpiCards?.totalRevenue || 0) | number }}</span>
+                <span class="val text-primary">₹{{ pincodeData() ? ((pincodeData()?.kpiCards?.totalRevenue ?? 0) | number) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Gross Profit</span>
-                <span class="val text-success">₹{{ (pincodeData()?.kpiCards?.totalProfit || 0) | number }}</span>
+                <span class="val text-success">₹{{ pincodeData() ? ((pincodeData()?.kpiCards?.totalProfit ?? 0) | number) : '—' }}</span>
               </div>
             </div>
 
@@ -846,27 +850,27 @@
             <div class="sub-kpi-strip">
               <div class="mini-kpi">
                 <span class="label">Total Registered Customers</span>
-                <span class="val">{{ custVsOrdersData()?.kpiCards?.totalRegisteredCustomers || 0 }}</span>
+                <span class="val">{{ custVsOrdersData() ? (custVsOrdersData()?.kpiCards?.totalRegisteredCustomers ?? 0) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Customers With Orders</span>
-                <span class="val text-primary">{{ custVsOrdersData()?.kpiCards?.customersWithAtLeastOneOrder || 0 }}</span>
+                <span class="val text-primary">{{ custVsOrdersData() ? (custVsOrdersData()?.kpiCards?.customersWithAtLeastOneOrder ?? 0) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Customers Without Orders</span>
-                <span class="val text-accent">{{ custVsOrdersData()?.kpiCards?.customersWithoutOrders || 0 }}</span>
+                <span class="val text-accent">{{ custVsOrdersData() ? (custVsOrdersData()?.kpiCards?.customersWithoutOrders ?? 0) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Repeat Customers</span>
-                <span class="val text-success">{{ custVsOrdersData()?.kpiCards?.repeatCustomers || 0 }}</span>
+                <span class="val text-success">{{ custVsOrdersData() ? (custVsOrdersData()?.kpiCards?.repeatCustomers ?? 0) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Repeat Purchase Rate</span>
-                <span class="val">{{ custVsOrdersData()?.kpiCards?.repeatPurchaseRate || 0 }}%</span>
+                <span class="val">{{ custVsOrdersData() ? (custVsOrdersData()?.kpiCards?.repeatPurchaseRate ?? 0) : '—' }}%</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Avg Orders / Customer</span>
-                <span class="val">{{ custVsOrdersData()?.kpiCards?.averageOrdersPerCustomer || 0 }}</span>
+                <span class="val">{{ custVsOrdersData() ? (custVsOrdersData()?.kpiCards?.averageOrdersPerCustomer ?? 0) : '—' }}</span>
               </div>
             </div>
 
@@ -1019,35 +1023,35 @@
             <div class="sub-kpi-strip">
               <div class="mini-kpi">
                 <span class="label">Gross Sales (GMV)</span>
-                <span class="val">₹{{ (revProfitData()?.kpiCards?.grossSales || 0) | number }}</span>
+                <span class="val">₹{{ revProfitData() ? ((revProfitData()?.kpiCards?.grossSales ?? 0) | number) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Discounts</span>
-                <span class="val text-danger">-₹{{ (revProfitData()?.kpiCards?.discounts || 0) | number }}</span>
+                <span class="val text-danger">-₹{{ revProfitData() ? ((revProfitData()?.kpiCards?.discounts ?? 0) | number) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Refunds</span>
-                <span class="val text-danger">-₹{{ (revProfitData()?.kpiCards?.refunds || 0) | number }}</span>
+                <span class="val text-danger">-₹{{ revProfitData() ? ((revProfitData()?.kpiCards?.refunds ?? 0) | number) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Net Revenue</span>
-                <span class="val text-primary font-bold">₹{{ (revProfitData()?.kpiCards?.netRevenue || 0) | number }}</span>
+                <span class="val text-primary font-bold">₹{{ revProfitData() ? ((revProfitData()?.kpiCards?.netRevenue ?? 0) | number) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Total Product Cost</span>
-                <span class="val text-danger">-₹{{ (revProfitData()?.kpiCards?.totalProductCost || 0) | number }}</span>
+                <span class="val text-danger">-₹{{ revProfitData() ? ((revProfitData()?.kpiCards?.totalProductCost ?? 0) | number) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Shipping Cost</span>
-                <span class="val text-danger">-₹{{ (revProfitData()?.kpiCards?.shippingCost || 0) | number }}</span>
+                <span class="val text-danger">-₹{{ revProfitData() ? ((revProfitData()?.kpiCards?.shippingCost ?? 0) | number) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Gross Profit</span>
-                <span class="val text-success font-bold">₹{{ (revProfitData()?.kpiCards?.grossProfit || 0) | number }}</span>
+                <span class="val text-success font-bold">₹{{ revProfitData() ? ((revProfitData()?.kpiCards?.grossProfit ?? 0) | number) : '—' }}</span>
               </div>
               <div class="mini-kpi">
                 <span class="label">Profit Margin</span>
-                <span class="val text-success font-bold">{{ revProfitData()?.kpiCards?.profitMargin || 0 }}%</span>
+                <span class="val text-success font-bold">{{ revProfitData() ? (revProfitData()?.kpiCards?.profitMargin ?? 0) : '—' }}%</span>
               </div>
             </div>
 

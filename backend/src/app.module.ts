@@ -20,6 +20,7 @@ import { CustomersModule } from './customers/customers.module';
 import { CustomerImportModule } from './customer-import/customer-import.module';
 import { MasterDataModule } from './master-data/master-data.module';
 import { MarketIntelligenceModule } from './market-intelligence/market-intelligence.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { MarketIntelligenceModule } from './market-intelligence/market-intellige
     CustomerImportModule,
     MasterDataModule,
     MarketIntelligenceModule,
+    DashboardModule,
   ],
   providers: [
     {

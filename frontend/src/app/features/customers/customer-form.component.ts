@@ -53,7 +53,7 @@ export class CustomerFormComponent implements OnInit {
   ngOnInit(): void {
     // Load customer types
     this.http.get<any>(`${environment.apiUrl}/master-data/customer-types`).subscribe({
-      next: (res) => this.customerTypes.set(res.data || []),
+      next: (res) => this.customerTypes.set(res || []),
       error: () => {
         // Fallback options
         this.customerTypes.set([

@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -74,6 +75,7 @@ export class MarketIntelligenceDashboardComponent implements OnInit {
   selectedTabIndex = 0;
   isLoading = signal<boolean>(false);
   isFilterOpen = signal<boolean>(false);
+  analyticsErrors = signal<Record<string, string>>({});
 
   // Filter Form (All 10 Global Filters from Prompt Section 3)
   filterForm: FormGroup = this.fb.group({
@@ -129,9 +131,61 @@ export class MarketIntelligenceDashboardComponent implements OnInit {
 
   loadFilterMetadata(): void {
     this.analyticsService.getFilterMetadata().subscribe({
-      next: (meta) => this.filterMeta.set(meta),
-      error: () => console.warn('Could not load filter metadata'),
+      next: (meta) => {
+        this.filterMeta.set(meta);
+        this.clearAnalyticsError('metadata');
+      },
+      error: (error: HttpErrorResponse) =>
+        this.setAnalyticsError(
+          'metadata',
+          error,
+          'filter metadata',
+          'ANALYTICS:VIEW_GEO',
+        ),
     });
+  }
+
+  hasAnalyticsError(section: string): boolean {
+    return Boolean(this.analyticsErrors()[section]);
+  }
+
+  analyticsError(section: string): string | null {
+    return this.analyticsErrors()[section] || null;
+  }
+
+  analyticsErrorMessages(): string[] {
+    return Object.values(this.analyticsErrors());
+  }
+
+  private clearAnalyticsError(section: string): void {
+    this.analyticsErrors.update((errors) => {
+      const { [section]: _removed, ...remaining } = errors;
+      return remaining;
+    });
+  }
+
+  private setAnalyticsError(
+    section: string,
+    error: HttpErrorResponse,
+    label: string,
+    requiredPermission: string,
+  ): void {
+    let message: string;
+    if (error.status === 403) {
+      message = `Access denied: ${requiredPermission} is required to view ${label}.`;
+    } else if (error.status === 401) {
+      message = 'Your session has expired. Sign in again to view analytics.';
+    } else {
+      const responseMessage = error.error?.message;
+      message = Array.isArray(responseMessage)
+        ? responseMessage.join(', ')
+        : typeof responseMessage === 'string' && responseMessage.trim()
+          ? responseMessage
+          : `Could not load ${label}. Please try again.`;
+    }
+
+    this.analyticsErrors.update((errors) => ({ ...errors, [section]: message }));
+    this.snackBar.open(message, 'Dismiss', { duration: 5000 });
   }
 
   toggleFilterDrawer(): void {
@@ -198,12 +252,25 @@ export class MarketIntelligenceDashboardComponent implements OnInit {
 
   loadAllData(): void {
     this.isLoading.set(true);
+    const metadataError = this.analyticsErrors()['metadata'];
+    this.analyticsErrors.set(metadataError ? { metadata: metadataError } : {});
+    this.overview.set(null);
+    this.stateData.set(null);
+    this.statesList.set([]);
+    this.cityData.set(null);
+    this.pincodeData.set(null);
+    this.custVsOrdersData.set(null);
+    this.revProfitData.set(null);
     const filter = this.getCurrentFilter();
 
     // 1. Overview KPIs
     this.analyticsService.getGeographyOverview(filter).subscribe({
-      next: (res) => this.overview.set(res),
-      error: () => this.snackBar.open('Error loading overview KPIs', 'Dismiss', { duration: 3000 }),
+      next: (res) => {
+        this.overview.set(res);
+        this.clearAnalyticsError('overview');
+      },
+      error: (error: HttpErrorResponse) =>
+        this.setAnalyticsError('overview', error, 'geographical overview', 'ANALYTICS:VIEW_GEO'),
     });
 
     // 2. State Performance
@@ -212,35 +279,50 @@ export class MarketIntelligenceDashboardComponent implements OnInit {
         this.stateData.set(res);
         this.statesList.set(res.states);
       },
-      error: () => this.snackBar.open('Error loading state data', 'Dismiss', { duration: 3000 }),
+      error: (error: HttpErrorResponse) =>
+        this.setAnalyticsError('states', error, 'state performance', 'ANALYTICS:VIEW_GEO'),
     });
 
     // 3. City Performance
     this.analyticsService.getCityPerformance(filter).subscribe({
       next: (res) => this.cityData.set(res),
-      error: () => this.snackBar.open('Error loading city data', 'Dismiss', { duration: 3000 }),
+      error: (error: HttpErrorResponse) =>
+        this.setAnalyticsError('cities', error, 'city performance', 'ANALYTICS:VIEW_GEO'),
     });
 
     // 4. Pincode Performance
     this.analyticsService.getPincodePerformance(filter).subscribe({
       next: (res) => this.pincodeData.set(res),
-      error: () => this.snackBar.open('Error loading pincode data', 'Dismiss', { duration: 3000 }),
+      error: (error: HttpErrorResponse) =>
+        this.setAnalyticsError('pincodes', error, 'pincode analytics', 'ANALYTICS:VIEW_GEO'),
     });
 
     // 5. Customer vs Orders
     this.analyticsService.getCustomerOrderAnalysis(filter).subscribe({
       next: (res) => this.custVsOrdersData.set(res),
-      error: () => this.snackBar.open('Error loading customer conversion data', 'Dismiss', { duration: 3000 }),
+      error: (error: HttpErrorResponse) =>
+        this.setAnalyticsError(
+          'customerOrders',
+          error,
+          'customer vs. order analysis',
+          'ANALYTICS:VIEW_CUSTOMERS',
+        ),
     });
 
     // 6. Revenue & Profit
     this.analyticsService.getRevenueProfitAnalysis(filter).subscribe({
       next: (res) => {
         this.revProfitData.set(res);
+        this.clearAnalyticsError('revenueProfit');
         this.isLoading.set(false);
       },
-      error: () => {
-        this.snackBar.open('Error loading financial analytics', 'Dismiss', { duration: 3000 });
+      error: (error: HttpErrorResponse) => {
+        this.setAnalyticsError(
+          'revenueProfit',
+          error,
+          'revenue and profit analysis',
+          'ANALYTICS:VIEW_FINANCIAL',
+        );
         this.isLoading.set(false);
       },
     });
@@ -254,7 +336,8 @@ export class MarketIntelligenceDashboardComponent implements OnInit {
   openStateDetail(stateId: string): void {
     this.analyticsService.getStateDetail(stateId, this.getCurrentFilter()).subscribe({
       next: (res) => this.activeStateDetail.set(res),
-      error: () => this.snackBar.open('Could not load state details', 'Dismiss', { duration: 3000 }),
+      error: (error: HttpErrorResponse) =>
+        this.setAnalyticsError('stateDetail', error, 'state details', 'ANALYTICS:VIEW_GEO'),
     });
   }
 
@@ -347,7 +430,8 @@ export class MarketIntelligenceDashboardComponent implements OnInit {
   openCityDetail(cityId: string): void {
     this.analyticsService.getCityDetail(cityId, this.getCurrentFilter()).subscribe({
       next: (res) => this.activeCityDetail.set(res),
-      error: () => this.snackBar.open('Could not load city details', 'Dismiss', { duration: 3000 }),
+      error: (error: HttpErrorResponse) =>
+        this.setAnalyticsError('cityDetail', error, 'city details', 'ANALYTICS:VIEW_GEO'),
     });
   }
 
@@ -499,8 +583,8 @@ export class MarketIntelligenceDashboardComponent implements OnInit {
     const items = this.custVsOrdersData()?.charts?.repeatPurchaseTrends || [];
     return items.map((t) => ({
       label: t.period,
-      value: t.estimatedRepeatOrders,
-      formattedValue: `${t.estimatedRepeatOrders} repeat orders`,
+      value: t.repeatOrders,
+      formattedValue: `${t.repeatOrders} repeat orders`,
     }));
   }
 

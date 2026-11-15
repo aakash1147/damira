@@ -48,16 +48,16 @@ export class OrgMasterComponent implements OnInit {
 
   loadAll(): void {
     this.http.get<any>(`${this.API_URL}/departments`).subscribe({
-      next: (res) => this.departments.set(res.data || res || []),
+      next: (res) => this.departments.set(res || []),
     });
     this.http.get<any>(`${this.API_URL}/designations`).subscribe({
-      next: (res) => this.designations.set(res.data || res || []),
+      next: (res) => this.designations.set(res || []),
     });
     this.http.get<any>(`${this.API_URL}/customer-types`).subscribe({
-      next: (res) => this.customerTypes.set(res.data || res || []),
+      next: (res) => this.customerTypes.set(res || []),
     });
     this.http.get<any>(`${this.API_URL}/address-types`).subscribe({
-      next: (res) => this.addressTypes.set(res.data || res || []),
+      next: (res) => this.addressTypes.set(res || []),
     });
   }
 

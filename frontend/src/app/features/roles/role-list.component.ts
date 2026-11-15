@@ -40,7 +40,7 @@ export class RoleListComponent implements OnInit {
     this.isLoading.set(true);
     this.http.get<any>(this.API_URL).subscribe({
       next: (res) => {
-        this.roles.set(res.data || []);
+        this.roles.set(res || []);
         this.isLoading.set(false);
       },
       error: () => this.isLoading.set(false),

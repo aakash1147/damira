@@ -1,6 +1,5 @@
 import {
   Component,
-  Input,
   Output,
   EventEmitter,
   OnChanges,
@@ -10,6 +9,7 @@ import {
   ElementRef,
   ViewChild,
   HostListener,
+  input,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -39,7 +39,7 @@ export type MetricType = 'revenue' | 'orders' | 'customers' | 'profit' | 'units'
   styleUrl: './india-choropleth-map.component.scss',
 })
 export class IndiaChoroplethMapComponent implements OnChanges {
-  @Input() statesData: StatePerformance[] = [];
+  statesData = input<StatePerformance[]>([]);
   @Output() stateSelected = new EventEmitter<StatePerformance>();
   @Output() drilldownRequested = new EventEmitter<StatePerformance>();
 
@@ -69,7 +69,7 @@ export class IndiaChoroplethMapComponent implements OnChanges {
   // Normalized fast lookup map
   private stateDataMap = computed(() => {
     const map = new Map<string, StatePerformance>();
-    for (const s of this.statesData) {
+    for (const s of this.statesData()) {
       if (!s) continue;
       let code = (s.stateCode || '').toUpperCase().trim();
       if (code === 'OR') code = 'OD';
@@ -102,7 +102,7 @@ export class IndiaChoroplethMapComponent implements OnChanges {
   metricExtremes = computed(() => {
     const metric = this.selectedMetric();
     const vals: number[] = [];
-    for (const s of this.statesData) {
+    for (const s of this.statesData()) {
       const v = this.extractMetricValue(s, metric);
       if (v > 0) vals.push(v);
     }
@@ -112,7 +112,7 @@ export class IndiaChoroplethMapComponent implements OnChanges {
   });
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['statesData'] && this.statesData.length > 0) {
+    if (changes['statesData'] && this.statesData().length > 0) {
       const current = this.selectedStateCode();
       if (current) {
         // Re-trigger selection to ensure bound records refresh

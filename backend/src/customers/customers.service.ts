@@ -413,6 +413,56 @@ export class CustomersService {
         });
       }
 
+      const hasOrderHistory = (await tx.order.count({
+        where: {
+          OR: [{ deliveryAddressId: addressId }, { billingAddressId: addressId }],
+        },
+      })) > 0;
+
+      if (hasOrderHistory) {
+        await tx.customerAddress.update({
+          where: { id: addressId },
+          data: {
+            isDeleted: true,
+            isDefaultBilling: false,
+            isDefaultShipping: false,
+          },
+        });
+
+        return tx.customerAddress.create({
+          data: {
+            customerId,
+            addressTypeId: dto.addressTypeId || address.addressTypeId,
+            addressLabel:
+              dto.addressLabel !== undefined ? dto.addressLabel.trim() : address.addressLabel,
+            contactPersonName:
+              dto.contactPersonName !== undefined ? dto.contactPersonName : address.contactPersonName,
+            contactMobile:
+              dto.contactMobile !== undefined ? dto.contactMobile : address.contactMobile,
+            addressLine1:
+              dto.addressLine1 !== undefined ? dto.addressLine1.trim() : address.addressLine1,
+            addressLine2: dto.addressLine2 !== undefined ? dto.addressLine2 : address.addressLine2,
+            landmark: dto.landmark !== undefined ? dto.landmark : address.landmark,
+            countryId: dto.countryId || address.countryId,
+            stateId: dto.stateId || address.stateId,
+            cityId: dto.cityId || address.cityId,
+            district: dto.district !== undefined ? dto.district : address.district,
+            postalCode:
+              dto.postalCode !== undefined ? dto.postalCode.trim() : address.postalCode,
+            isDefaultBilling:
+              dto.isDefaultBilling !== undefined ? dto.isDefaultBilling : address.isDefaultBilling,
+            isDefaultShipping:
+              dto.isDefaultShipping !== undefined ? dto.isDefaultShipping : address.isDefaultShipping,
+          },
+          include: {
+            addressType: true,
+            country: true,
+            state: true,
+            city: true,
+          },
+        });
+      }
+
       return tx.customerAddress.update({
         where: { id: addressId },
         data: {

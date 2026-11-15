@@ -49,11 +49,11 @@ export class MarketIntelligenceService {
    */
   private buildOrderWhere(filter: AnalyticsFilterDto): any {
     const where: any = {
-      status: { not: 'CANCELLED' },
+      AND: [{ status: { not: 'CANCELLED' } }],
     };
 
     if (filter.orderStatus) {
-      where.status = filter.orderStatus;
+      where.AND.push({ status: filter.orderStatus });
     }
 
     if (filter.startDate || filter.endDate) {
@@ -105,6 +105,42 @@ export class MarketIntelligenceService {
     return where;
   }
 
+  private getRecognizedNetRevenue(order: { status: string; netAmount: number }): number {
+    // RETURNED means the complete sale was reversed; REFUNDED netAmount is already post-refund.
+    return order.status === 'RETURNED' ? 0 : order.netAmount;
+  }
+
+  private getRecognizedRefundAmount(order: {
+    status: string;
+    refundAmount: number;
+    netAmount: number;
+  }): number {
+    // Older returned orders may not have a refundAmount, but retain their pre-return netAmount.
+    return order.status === 'RETURNED' && order.refundAmount === 0
+      ? order.netAmount
+      : order.refundAmount;
+  }
+
+  private getRecognizedGrossProfit(order: {
+    status: string;
+    grossProfit: number;
+    shippingCost: number;
+    packagingCost: number;
+  }): number {
+    // A full return reverses merchandise margin; dispatch and packaging costs remain incurred.
+    return order.status === 'RETURNED'
+      ? -(order.shippingCost + order.packagingCost)
+      : order.grossProfit;
+  }
+
+  private isDispatchedOrder(status: string): boolean {
+    return status === 'SHIPPED' || status === 'DELIVERED';
+  }
+
+  private getDispatchedUnits(order: { status: string; totalUnits: number }): number {
+    return this.isDispatchedOrder(order.status) ? order.totalUnits : 0;
+  }
+
   /**
    * Helper to build Customer WHERE clause based on AnalyticsFilterDto
    */
@@ -149,6 +185,7 @@ export class MarketIntelligenceService {
       select: {
         id: true,
         customerId: true,
+        status: true,
         grossAmount: true,
         discountAmount: true,
         refundAmount: true,
@@ -206,19 +243,21 @@ export class MarketIntelligenceService {
     for (const order of orders) {
       totalGrossRevenue += order.grossAmount;
       totalDiscount += order.discountAmount;
-      totalRefunds += order.refundAmount;
-      totalRevenue += order.netAmount;
-      totalUnitsSold += order.totalUnits;
+      totalRefunds += this.getRecognizedRefundAmount(order);
+      totalRevenue += this.getRecognizedNetRevenue(order);
+      totalUnitsSold += this.getDispatchedUnits(order);
       totalProductCost += order.productCost;
       totalPackagingCost += order.packagingCost;
       totalShippingCost += order.shippingCost;
       totalAllocatedCost += order.allocatedCost;
-      totalGrossProfit += order.grossProfit;
+      totalGrossProfit += this.getRecognizedGrossProfit(order);
 
-      customerOrderCounts.set(
-        order.customerId,
-        (customerOrderCounts.get(order.customerId) || 0) + 1,
-      );
+      if (this.isDispatchedOrder(order.status)) {
+        customerOrderCounts.set(
+          order.customerId,
+          (customerOrderCounts.get(order.customerId) || 0) + 1,
+        );
+      }
 
       if (order.deliveryAddress?.postalCode) {
         activePincodesSet.add(order.deliveryAddress.postalCode);
@@ -228,6 +267,10 @@ export class MarketIntelligenceService {
     const distinctOrderingCustomers = customerOrderCounts.size;
     const customersWithOrders = distinctOrderingCustomers;
     const customersWithoutOrders = Math.max(0, totalCustomers - customersWithOrders);
+    const dispatchedOrderCount = Array.from(customerOrderCounts.values()).reduce(
+      (total, count) => total + count,
+      0,
+    );
 
     let repeatCustomers = 0;
     for (const count of customerOrderCounts.values()) {
@@ -241,7 +284,7 @@ export class MarketIntelligenceService {
         : 0;
     const averageOrdersPerCustomer =
       customersWithOrders > 0
-        ? Math.round((totalOrders / customersWithOrders) * 10) / 10
+        ? Math.round((dispatchedOrderCount / customersWithOrders) * 10) / 10
         : 0;
     const profitMarginPct =
       totalRevenue > 0
@@ -305,10 +348,13 @@ export class MarketIntelligenceService {
       select: {
         id: true,
         orderNumber: true,
+        status: true,
         orderDate: true,
         customerId: true,
         netAmount: true,
         grossProfit: true,
+        shippingCost: true,
+        packagingCost: true,
         totalUnits: true,
         deliveryAddress: {
           select: { stateId: true, state: { select: { id: true, name: true, code: true, gstCode: true } } },
@@ -394,21 +440,25 @@ export class MarketIntelligenceService {
       }
 
       agg.orders++;
-      agg.revenue += ord.netAmount;
-      agg.profit += ord.grossProfit;
-      agg.units += ord.totalUnits;
-      agg.customerOrders.set(
-        ord.customerId,
-        (agg.customerOrders.get(ord.customerId) || 0) + 1,
-      );
+      const netRevenue = this.getRecognizedNetRevenue(ord);
+      agg.revenue += netRevenue;
+      const grossProfit = this.getRecognizedGrossProfit(ord);
+      agg.profit += grossProfit;
+      agg.units += this.getDispatchedUnits(ord);
+      if (this.isDispatchedOrder(ord.status)) {
+        agg.customerOrders.set(
+          ord.customerId,
+          (agg.customerOrders.get(ord.customerId) || 0) + 1,
+        );
+      }
 
       const d = new Date(ord.orderDate);
       const period = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      agg.monthlyRevenue.set(period, (agg.monthlyRevenue.get(period) || 0) + ord.netAmount);
+      agg.monthlyRevenue.set(period, (agg.monthlyRevenue.get(period) || 0) + netRevenue);
 
-      overallRevenue += ord.netAmount;
+      overallRevenue += netRevenue;
       overallOrders++;
-      overallProfit += ord.grossProfit;
+      overallProfit += grossProfit;
     }
 
     const stateList = Array.from(stateMap.values()).map((s) => {
@@ -546,9 +596,12 @@ export class MarketIntelligenceService {
       select: {
         id: true,
         customerId: true,
+        status: true,
         orderDate: true,
         netAmount: true,
         grossProfit: true,
+        shippingCost: true,
+        packagingCost: true,
         totalUnits: true,
         deliveryAddress: {
           select: {
@@ -581,6 +634,7 @@ export class MarketIntelligenceService {
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
     const cityCustMap = new Map<string, { total: number; newCust: number }>();
+    const customerIdsByCity = new Map<string, Set<string>>();
     for (const cust of customers) {
       const primaryAddr = cust.addresses.find((a) => a.isDefaultShipping) || cust.addresses[0];
       const cId = primaryAddr?.cityId || 'UNMAPPED';
@@ -588,6 +642,9 @@ export class MarketIntelligenceService {
       entry.total++;
       if (cust.createdAt >= ninetyDaysAgo) entry.newCust++;
       cityCustMap.set(cId, entry);
+      const customerIds = customerIdsByCity.get(cId) || new Set<string>();
+      customerIds.add(cust.id);
+      customerIdsByCity.set(cId, customerIds);
     }
 
     interface CityAgg {
@@ -632,21 +689,25 @@ export class MarketIntelligenceService {
       }
 
       agg.orders++;
-      agg.revenue += ord.netAmount;
-      agg.profit += ord.grossProfit;
-      agg.units += ord.totalUnits;
-      agg.customerOrders.set(
-        ord.customerId,
-        (agg.customerOrders.get(ord.customerId) || 0) + 1,
-      );
+      const netRevenue = this.getRecognizedNetRevenue(ord);
+      agg.revenue += netRevenue;
+      const grossProfit = this.getRecognizedGrossProfit(ord);
+      agg.profit += grossProfit;
+      agg.units += this.getDispatchedUnits(ord);
+      if (this.isDispatchedOrder(ord.status)) {
+        agg.customerOrders.set(
+          ord.customerId,
+          (agg.customerOrders.get(ord.customerId) || 0) + 1,
+        );
+      }
 
       const d = new Date(ord.orderDate);
       const period = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      agg.monthlyRevenue.set(period, (agg.monthlyRevenue.get(period) || 0) + ord.netAmount);
+      agg.monthlyRevenue.set(period, (agg.monthlyRevenue.get(period) || 0) + netRevenue);
 
-      overallRevenue += ord.netAmount;
+      overallRevenue += netRevenue;
       overallOrders++;
-      overallProfit += ord.grossProfit;
+      overallProfit += grossProfit;
     }
 
     // Include registered cities with zero orders
@@ -674,8 +735,16 @@ export class MarketIntelligenceService {
       }
     }
 
+    const dispatchedCustomerIds = new Set(
+      orders.filter((order) => this.isDispatchedOrder(order.status)).map((order) => order.customerId),
+    );
+
     const cityList = Array.from(cityMap.values()).map((c) => {
       const custInfo = cityCustMap.get(c.cityId) || { total: 0, newCust: 0 };
+      const cityCustomerIds = customerIdsByCity.get(c.cityId) || new Set<string>();
+      const customersWithOrders = Array.from(cityCustomerIds).filter((id) =>
+        dispatchedCustomerIds.has(id),
+      ).length;
       let repeatCustomers = 0;
       for (const count of c.customerOrders.values()) {
         if (count >= 2) repeatCustomers++;
@@ -698,6 +767,8 @@ export class MarketIntelligenceService {
         stateName: c.stateName,
         stateCode: c.stateCode,
         totalCustomers: custInfo.total,
+        customersWithOrders,
+        customersWithoutOrders: Math.max(0, custInfo.total - customersWithOrders),
         newCustomers: custInfo.newCust,
         totalOrders: c.orders,
         totalRevenue: Math.round(c.revenue),
@@ -827,8 +898,11 @@ export class MarketIntelligenceService {
       where: orderWhere,
       select: {
         customerId: true,
+        status: true,
         netAmount: true,
         grossProfit: true,
+        shippingCost: true,
+        packagingCost: true,
         totalUnits: true,
         deliveryAddress: {
           select: {
@@ -891,17 +965,21 @@ export class MarketIntelligenceService {
       }
 
       agg.orders++;
-      agg.revenue += ord.netAmount;
-      agg.profit += ord.grossProfit;
-      agg.units += ord.totalUnits;
-      agg.customerOrders.set(
-        ord.customerId,
-        (agg.customerOrders.get(ord.customerId) || 0) + 1,
-      );
+      const netRevenue = this.getRecognizedNetRevenue(ord);
+      agg.revenue += netRevenue;
+      const grossProfit = this.getRecognizedGrossProfit(ord);
+      agg.profit += grossProfit;
+      agg.units += this.getDispatchedUnits(ord);
+      if (this.isDispatchedOrder(ord.status)) {
+        agg.customerOrders.set(
+          ord.customerId,
+          (agg.customerOrders.get(ord.customerId) || 0) + 1,
+        );
+      }
 
-      overallRevenue += ord.netAmount;
+      overallRevenue += netRevenue;
       overallOrders++;
-      overallProfit += ord.grossProfit;
+      overallProfit += grossProfit;
     }
 
     const pincodeList = Array.from(pinMap.values()).map((p) => {
@@ -961,8 +1039,6 @@ export class MarketIntelligenceService {
 
     // City comparison table calculation
     const categorized = cities.map((c) => {
-      const customersWithOrders = Math.min(c.totalCustomers, c.totalOrders > 0 ? Math.max(1, c.repeatCustomers + 1) : 0);
-      const customersWithoutOrders = Math.max(0, c.totalCustomers - customersWithOrders);
       const ordersPerCustomer = c.totalCustomers > 0 ? Math.round((c.totalOrders / c.totalCustomers) * 10) / 10 : 0;
 
       let quadrant:
@@ -991,8 +1067,8 @@ export class MarketIntelligenceService {
         cityName: c.cityName,
         stateName: c.stateName,
         totalCustomers: c.totalCustomers,
-        customersWithOrders,
-        customersWithoutOrders,
+        customersWithOrders: c.customersWithOrders,
+        customersWithoutOrders: c.customersWithoutOrders,
         totalOrders: c.totalOrders,
         repeatCustomers: c.repeatCustomers,
         ordersPerCustomer,
@@ -1047,7 +1123,7 @@ export class MarketIntelligenceService {
     const repeatPurchaseTrends = trends.trends.map((t) => ({
       period: t.period,
       totalOrders: t.orders,
-      estimatedRepeatOrders: Math.round(t.orders * (overview.repeatPurchaseRate / 100)),
+      repeatOrders: t.repeatOrders,
       revenue: t.revenue,
     }));
 
@@ -1161,32 +1237,91 @@ export class MarketIntelligenceService {
       });
     }
 
-    // Detailed Geographical Financial Table (State, City, Orders, Gross, Discounts, Refunds, Net, ProductCost, Shipping, Profit, Margin)
-    const financialLedger = cities.map((c) => {
-      const grossSales = Math.round(c.totalRevenue * 1.05);
-      const discounts = Math.round(grossSales * 0.05);
-      const refunds = 0;
-      const productCost = Math.round(c.totalRevenue * 0.55);
-      const shippingCost = c.totalOrders * 100;
-      const otherCosts = Math.round(c.totalRevenue * 0.03);
-      const profit = c.totalProfit;
-      const profitMargin = c.totalRevenue > 0 ? Math.round((profit / c.totalRevenue) * 1000) / 10 : 0;
-
-      return {
-        stateName: c.stateName,
-        cityName: c.cityName,
-        orders: c.totalOrders,
-        grossSales,
-        discounts,
-        refunds,
-        netRevenue: c.totalRevenue,
-        productCost,
-        shippingCost,
-        otherAllocatedCosts: otherCosts,
-        profit,
-        profitMargin,
-      };
+    const ledgerOrders = await this.prisma.order.findMany({
+      where: this.buildOrderWhere(filter),
+      select: {
+        status: true,
+        grossAmount: true,
+        discountAmount: true,
+        refundAmount: true,
+        netAmount: true,
+        productCost: true,
+        packagingCost: true,
+        shippingCost: true,
+        allocatedCost: true,
+        grossProfit: true,
+        deliveryAddress: {
+          select: {
+            city: {
+              select: {
+                name: true,
+                state: { select: { name: true } },
+              },
+            },
+          },
+        },
+      },
     });
+
+    const ledgerByLocation = new Map<string, {
+      stateName: string;
+      cityName: string;
+      orders: number;
+      grossSales: number;
+      discounts: number;
+      refunds: number;
+      netRevenue: number;
+      productCost: number;
+      shippingCost: number;
+      otherAllocatedCosts: number;
+      profit: number;
+    }>();
+
+    for (const order of ledgerOrders) {
+      const stateName = order.deliveryAddress?.city?.state?.name || 'Unmapped';
+      const cityName = order.deliveryAddress?.city?.name || 'Unmapped / Delivery Missing';
+      const key = `${stateName}\u0000${cityName}`;
+      const row = ledgerByLocation.get(key) || {
+        stateName,
+        cityName,
+        orders: 0,
+        grossSales: 0,
+        discounts: 0,
+        refunds: 0,
+        netRevenue: 0,
+        productCost: 0,
+        shippingCost: 0,
+        otherAllocatedCosts: 0,
+        profit: 0,
+      };
+
+      row.orders++;
+      row.grossSales += order.grossAmount;
+      row.discounts += order.discountAmount;
+      row.refunds += this.getRecognizedRefundAmount(order);
+      row.netRevenue += this.getRecognizedNetRevenue(order);
+      row.productCost += order.productCost;
+      row.shippingCost += order.shippingCost;
+      row.otherAllocatedCosts += order.packagingCost + order.allocatedCost;
+      row.profit += this.getRecognizedGrossProfit(order);
+      ledgerByLocation.set(key, row);
+    }
+
+    const financialLedger = Array.from(ledgerByLocation.values())
+      .map((row) => ({
+        ...row,
+        grossSales: Math.round(row.grossSales),
+        discounts: Math.round(row.discounts),
+        refunds: Math.round(row.refunds),
+        netRevenue: Math.round(row.netRevenue),
+        productCost: Math.round(row.productCost),
+        shippingCost: Math.round(row.shippingCost),
+        otherAllocatedCosts: Math.round(row.otherAllocatedCosts),
+        profit: Math.round(row.profit),
+        profitMargin:
+          row.netRevenue > 0 ? Math.round((row.profit / row.netRevenue) * 1000) / 10 : 0,
+      }))
+      .sort((a, b) => b.netRevenue - a.netRevenue);
 
     return {
       kpiCards: {
@@ -1229,6 +1364,7 @@ export class MarketIntelligenceService {
       include: {
         order: {
           select: {
+            status: true,
             deliveryAddress: {
               select: {
                 state: { select: { name: true, code: true } },
@@ -1262,6 +1398,7 @@ export class MarketIntelligenceService {
     const prodMap = new Map<string, ProdAgg>();
 
     for (const item of orderItems) {
+      if (item.order.status === 'RETURNED' || item.order.status === 'REFUNDED') continue;
       const v = item.variant;
       let agg = prodMap.get(v.id);
       if (!agg) {
@@ -1352,9 +1489,9 @@ export class MarketIntelligenceService {
 
       for (const ord of ch.orders) {
         ordersCount++;
-        revenue += ord.netAmount;
-        units += ord.totalUnits;
-        profit += ord.grossProfit;
+        revenue += this.getRecognizedNetRevenue(ord);
+        units += this.getDispatchedUnits(ord);
+        profit += this.getRecognizedGrossProfit(ord);
 
         const sName = ord.deliveryAddress?.state?.name || 'Unknown State';
         stateCounts.set(sName, (stateCounts.get(sName) || 0) + 1);
@@ -1396,18 +1533,30 @@ export class MarketIntelligenceService {
     const orders = await this.prisma.order.findMany({
       where: orderWhere,
       select: {
+        customerId: true,
         orderDate: true,
+        status: true,
         netAmount: true,
         grossProfit: true,
+        shippingCost: true,
+        packagingCost: true,
         totalUnits: true,
       },
-      orderBy: { orderDate: 'asc' },
+      orderBy: [{ orderDate: 'asc' }, { id: 'asc' }],
     });
 
     const monthlyMap = new Map<
       string,
-      { period: string; revenue: number; orders: number; units: number; profit: number }
+      {
+        period: string;
+        revenue: number;
+        orders: number;
+        units: number;
+        profit: number;
+        repeatOrders: number;
+      }
     >();
+    const dispatchedCustomers = new Set<string>();
 
     for (const ord of orders) {
       const d = new Date(ord.orderDate);
@@ -1419,11 +1568,16 @@ export class MarketIntelligenceService {
         orders: 0,
         units: 0,
         profit: 0,
+        repeatOrders: 0,
       };
-      entry.revenue += ord.netAmount;
+      entry.revenue += this.getRecognizedNetRevenue(ord);
       entry.orders++;
-      entry.units += ord.totalUnits;
-      entry.profit += ord.grossProfit;
+      entry.units += this.getDispatchedUnits(ord);
+      entry.profit += this.getRecognizedGrossProfit(ord);
+      if (this.isDispatchedOrder(ord.status)) {
+        if (dispatchedCustomers.has(ord.customerId)) entry.repeatOrders++;
+        dispatchedCustomers.add(ord.customerId);
+      }
       monthlyMap.set(period, entry);
     }
 

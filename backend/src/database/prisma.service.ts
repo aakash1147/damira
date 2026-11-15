@@ -10,7 +10,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       await this.$connect();
       this.logger.log('Prisma connected to local database successfully.');
     } catch (error) {
-      this.logger.error('Failed to connect to local database via Prisma', error);
+      this.logger.error(
+        'Prisma could not connect to the configured database. Check DATABASE_URL and database availability.',
+      );
+      throw error;
     }
   }
 

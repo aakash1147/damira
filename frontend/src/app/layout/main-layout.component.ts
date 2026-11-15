@@ -13,6 +13,7 @@ interface NavItem {
   route?: string;
   module?: string;
   action?: string;
+  anyPermissions?: { module: string; action: string }[];
   children?: NavItem[];
 }
 
@@ -66,8 +67,10 @@ export class MainLayoutComponent {
           label: 'Geographical Analytics',
           icon: 'public',
           route: '/analytics/market-intelligence',
-          module: 'ANALYTICS',
-          action: 'VIEW_GEO',
+          anyPermissions: [
+            { module: 'ANALYTICS', action: 'VIEW_GEO' },
+            { module: 'ANALYTICS', action: 'VIEW_CUSTOMERS' },
+          ],
         },
       ],
     },
@@ -113,6 +116,11 @@ export class MainLayoutComponent {
       .map((item) => {
         if (item.children) {
           const filteredChildren = item.children.filter((child) => {
+            if (child.anyPermissions?.length) {
+              return child.anyPermissions.some((permission) =>
+                this.authService.hasPermission(permission.module, permission.action),
+              );
+            }
             if (!child.module) return true;
             return this.authService.hasPermission(child.module, child.action || 'VIEW');
           });

@@ -1,161 +1,185 @@
-    <div class="dashboard-page">
-      <!-- Welcome Banner -->
-      <div class="welcome-header">
-        <div>
-          <h1 class="page-title">Executive Dashboard</h1>
-          <p class="page-sub">
-            Welcome back, <strong>{{ currentUser()?.fullName || currentUser()?.username }}</strong>. Here is the operational summary for <strong>DAMIRA by Gupta</strong>.
-          </p>
-        </div>
-        <div class="header-actions">
-          <a
-            *hasPermission="['CUSTOMERS', 'CREATE']"
-            routerLink="/crm/customers/new"
-            class="action-btn primary"
-          >
-            <span class="material-icons-round">person_add</span>
-            <span>New Customer</span>
-          </a>
-          <a
-            *hasPermission="['CUSTOMERS', 'IMPORT']"
-            routerLink="/crm/import"
-            class="action-btn secondary"
-          >
-            <span class="material-icons-round">upload_file</span>
-            <span>Bulk Import</span>
-          </a>
-        </div>
-      </div>
+<div class="dashboard-page">
+  <div class="welcome-header">
+    <div>
+      <h1 class="page-title">Executive Dashboard</h1>
+      <p class="page-sub">
+        Welcome back, <strong>{{ currentUser()?.fullName || currentUser()?.username }}</strong>.
+        Here is the operational summary for <strong>DAMIRA by Gupta</strong>.
+      </p>
+    </div>
+    <div class="header-actions">
+      <button mat-stroked-button type="button" (click)="loadData()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+      <a
+        *hasPermission="['CUSTOMERS', 'CREATE']"
+        routerLink="/crm/customers/new"
+        class="action-btn primary"
+      >
+        <span class="material-icons-round">person_add</span>
+        <span>New Customer</span>
+      </a>
+      <a
+        *hasPermission="['CUSTOMERS', 'IMPORT']"
+        routerLink="/crm/import"
+        class="action-btn secondary"
+      >
+        <span class="material-icons-round">upload_file</span>
+        <span>Bulk Import</span>
+      </a>
+    </div>
+  </div>
 
-      <!-- KPI Stat Cards -->
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-icon-wrap purple">
-            <span class="material-icons-round">people_alt</span>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-label">Total Customers</span>
-            <span class="kpi-value">{{ stats().totalCustomers }}</span>
-            <span class="kpi-sub positive">+12% vs last month</span>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-icon-wrap emerald">
-            <span class="material-icons-round">check_circle</span>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-label">Active Customers</span>
-            <span class="kpi-value">{{ stats().activeCustomers }}</span>
-            <span class="kpi-sub">98.2% healthy status</span>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-icon-wrap blue">
-            <span class="material-icons-round">person_add_alt_1</span>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-label">New This Month</span>
-            <span class="kpi-value">{{ stats().newCustomersMonth }}</span>
-            <span class="kpi-sub positive">+8 registered this week</span>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-icon-wrap amber">
-            <span class="material-icons-round">badge</span>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-label">Active Employees</span>
-            <span class="kpi-value">{{ stats().activeEmployees }}</span>
-            <span class="kpi-sub">Across 6 departments</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Main Panels Grid -->
-      <div class="panels-grid">
-        <!-- CRM Operational Highlights -->
-        <div class="dashboard-panel">
-          <div class="panel-header">
-            <div>
-              <h2 class="panel-title">Customer Distribution by Type</h2>
-              <span class="panel-sub">Breakdown across retail, distributor and wholesale</span>
-            </div>
-            <a routerLink="/crm/customers" class="panel-link">View Directory &rarr;</a>
-          </div>
-
-          <div class="distribution-list">
-            <div class="dist-row">
-              <span class="dist-name">Wholesaler</span>
-              <div class="dist-bar-wrap">
-                <div class="dist-bar purple" style="width: 45%;"></div>
-              </div>
-              <span class="dist-val">45%</span>
-            </div>
-            <div class="dist-row">
-              <span class="dist-name">Distributor</span>
-              <div class="dist-bar-wrap">
-                <div class="dist-bar violet" style="width: 28%;"></div>
-              </div>
-              <span class="dist-val">28%</span>
-            </div>
-            <div class="dist-row">
-              <span class="dist-name">Corporate</span>
-              <div class="dist-bar-wrap">
-                <div class="dist-bar blue" style="width: 15%;"></div>
-              </div>
-              <span class="dist-val">15%</span>
-            </div>
-            <div class="dist-row">
-              <span class="dist-name">Retailer & Individual</span>
-              <div class="dist-bar-wrap">
-                <div class="dist-bar emerald" style="width: 12%;"></div>
-              </div>
-              <span class="dist-val">12%</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Recent Audit Activity -->
-        <div class="dashboard-panel">
-          <div class="panel-header">
-            <div>
-              <h2 class="panel-title">Recent Activity Logs</h2>
-              <span class="panel-sub">Security, logins and profile changes</span>
-            </div>
-            <a routerLink="/system/audit-logs" class="panel-link">Full Audit &rarr;</a>
-          </div>
-
-          <div class="activity-timeline">
-            <div class="timeline-item">
-              <div class="timeline-bullet login"></div>
-              <div class="timeline-body">
-                <span class="timeline-text">
-                  <strong>{{ currentUser()?.username }}</strong> logged in to Internal Console
-                </span>
-                <span class="timeline-time">Just now &bull; Web Console</span>
-              </div>
-            </div>
-
-            <div class="timeline-item">
-              <div class="timeline-bullet system"></div>
-              <div class="timeline-body">
-                <span class="timeline-text">System initial database migration deployed</span>
-                <span class="timeline-time">System Event &bull; Initializer</span>
-              </div>
-            </div>
-
-            <div class="timeline-item">
-              <div class="timeline-bullet seed"></div>
-              <div class="timeline-body">
-                <span class="timeline-text">Master Data & GST Indian state codes provisioned</span>
-                <span class="timeline-time">Seed Task &bull; 36 Regions</span>
-              </div>
-            </div>
-          </div>
-        </div>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap purple"><span class="material-icons-round">people_alt</span></div>
+      <div class="kpi-content">
+        <span class="kpi-label">Total Customers</span>
+        <span class="kpi-value">
+          <ng-container *ngIf="!customersLoading(); else customerCountLoading">
+            {{ customersError() ? '—' : (customerSummary()?.totalCustomers | number) }}
+          </ng-container>
+        </span>
       </div>
     </div>
-  
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap emerald"><span class="material-icons-round">check_circle</span></div>
+      <div class="kpi-content">
+        <span class="kpi-label">Active Customers</span>
+        <span class="kpi-value">
+          <ng-container *ngIf="!customersLoading(); else customerCountLoading">
+            {{ customersError() ? '—' : (customerSummary()?.activeCustomers | number) }}
+          </ng-container>
+        </span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap blue"><span class="material-icons-round">person_add_alt_1</span></div>
+      <div class="kpi-content">
+        <span class="kpi-label">New This Month</span>
+        <span class="kpi-value">
+          <ng-container *ngIf="!customersLoading(); else customerCountLoading">
+            {{ customersError() ? '—' : (customerSummary()?.newCustomersMonth | number) }}
+          </ng-container>
+        </span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap amber"><span class="material-icons-round">badge</span></div>
+      <div class="kpi-content">
+        <span class="kpi-label">Total Employees</span>
+        <span class="kpi-value">
+          <ng-container *ngIf="!employeesLoading(); else employeeCountLoading">
+            {{ employeesError() ? '—' : (employeeSummary()?.totalEmployees | number) }}
+          </ng-container>
+        </span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap emerald"><span class="material-icons-round">verified_user</span></div>
+      <div class="kpi-content">
+        <span class="kpi-label">Active Employees</span>
+        <span class="kpi-value">
+          <ng-container *ngIf="!employeesLoading(); else employeeCountLoading">
+            {{ employeesError() ? '—' : (employeeSummary()?.activeEmployees | number) }}
+          </ng-container>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panels-grid">
+    <div class="dashboard-panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Customer Distribution by Type</h2>
+          <span class="panel-sub">Active customer records grouped by database customer type</span>
+        </div>
+        <a routerLink="/crm/customers" class="panel-link">View Directory &rarr;</a>
+      </div>
+
+      <div class="panel-state" *ngIf="customersLoading()">Loading customer data…</div>
+      <div class="error-state" *ngIf="!customersLoading() && customersError()">{{ customersError() }}</div>
+      <ng-container *ngIf="!customersLoading() && !customersError() && customerSummary() as summary">
+        <div class="distribution-list" *ngIf="summary.customerTypeDistribution.length; else noCustomerTypes">
+          <div class="dist-row" *ngFor="let type of summary.customerTypeDistribution; let i = index">
+            <span class="dist-name">{{ type.name }}</span>
+            <div class="dist-bar-wrap">
+              <div
+                class="dist-bar"
+                [ngClass]="['purple', 'violet', 'blue', 'emerald'][i % 4]"
+                [style.width.%]="type.percentage"
+              ></div>
+            </div>
+            <span class="dist-val">{{ type.count }} ({{ type.percentage }}%)</span>
+          </div>
+        </div>
+        <ng-template #noCustomerTypes>
+          <div class="empty-state">No customer types are configured.</div>
+        </ng-template>
+
+        <h3 class="recent-title">Recent Customer Registrations</h3>
+        <div class="activity-timeline" *ngIf="summary.recentRegistrations.length; else noRecentCustomers">
+          <div class="timeline-item" *ngFor="let customer of summary.recentRegistrations">
+            <div class="timeline-bullet login"></div>
+            <div class="timeline-body">
+              <span class="timeline-text"><strong>{{ customer.fullName }}</strong> registered as {{ customer.customerType }}</span>
+              <span class="timeline-time">{{ customer.createdAt | date:'medium' }}</span>
+            </div>
+          </div>
+        </div>
+        <ng-template #noRecentCustomers>
+          <div class="empty-state">No customer registrations are available.</div>
+        </ng-template>
+      </ng-container>
+    </div>
+
+    <div class="dashboard-panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Recent Employee Activities</h2>
+          <span class="panel-sub">Recent employee changes recorded in the audit log</span>
+        </div>
+        <a routerLink="/system/audit-logs" class="panel-link">Full Audit &rarr;</a>
+      </div>
+
+      <div class="panel-state" *ngIf="employeesLoading() || activitiesLoading()">Loading employee data…</div>
+      <div class="error-state" *ngIf="!employeesLoading() && employeesError()">{{ employeesError() }}</div>
+      <div class="error-state" *ngIf="!activitiesLoading() && activitiesError()">{{ activitiesError() }}</div>
+      <ng-container *ngIf="!employeesLoading() && !employeesError() && employeeSummary()">
+        <p class="employee-summary">
+          {{ employeeSummary()?.activeEmployees | number }} active of
+          {{ employeeSummary()?.totalEmployees | number }} employees
+        </p>
+      </ng-container>
+      <div
+        class="activity-timeline"
+        *ngIf="!activitiesLoading() && !activitiesError() && employeeActivities().length"
+      >
+        <div class="timeline-item" *ngFor="let activity of employeeActivities()">
+          <div class="timeline-bullet system"></div>
+          <div class="timeline-body">
+            <span class="timeline-text">
+              <strong>{{ activity.actorName }}</strong> {{ activity.action | lowercase }} an employee record
+            </span>
+            <span class="timeline-time">{{ activity.createdAt | date:'medium' }}</span>
+          </div>
+        </div>
+      </div>
+      <div
+        class="empty-state"
+        *ngIf="!activitiesLoading() && !activitiesError() && !employeeActivities().length"
+      >
+        No employee activity has been recorded.
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #customerCountLoading>Loading…</ng-template>
+<ng-template #employeeCountLoading>Loading…</ng-template>

@@ -236,7 +236,7 @@ export interface CustomerVsOrdersResponse {
     customersVsOrdersByCity: { cityName: string; stateName: string; customers: number; orders: number; revenue: number }[];
     customerLoyaltyDistribution: { firstTimeCustomers: number; repeatCustomers: number; customersWithoutOrders: number };
     customersWithoutOrdersByCity: { cityName: string; stateName: string; customersWithoutOrders: number; totalCustomers: number }[];
-    repeatPurchaseTrends: { period: string; totalOrders: number; estimatedRepeatOrders: number; revenue: number }[];
+    repeatPurchaseTrends: { period: string; totalOrders: number; repeatOrders: number; revenue: number }[];
   };
   analysis?: CustomerVsOrdersItem[];
 }

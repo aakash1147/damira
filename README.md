@@ -166,3 +166,22 @@ Navigate to `http://localhost:4200` in your web browser.
 - **Username**: `superadmin`
 - **Password**: `DamiraAdmin2026!`
 - **Role**: `Super Admin` (Unrestricted authority across all modules)
+
+## 6. Dashboard and Geography KPI Definitions
+
+Geographical sales use each order's stored delivery address, not the customer's current address. Orders without a usable delivery location are retained under an unmapped location rather than assigned to a current address.
+
+| KPI | Calculation |
+|---|---|
+| Total Net Revenue | Sum of `netAmount` for non-cancelled orders. `RETURNED` orders contribute zero; `REFUNDED` orders use their persisted post-refund `netAmount`. |
+| Total Commercial Orders | Count of unique, non-cancelled orders, including returned and refunded orders. |
+| Registered Customers | Count of unique, non-deleted customers matching the selected filters. |
+| Units Dispatched | Sum of `totalUnits` for `SHIPPED` and `DELIVERED` orders only. |
+| Average Order Value | Total Net Revenue divided by Total Commercial Orders; zero when there are no qualifying orders. |
+| Repeat Customers | Unique customers with at least two `SHIPPED` or `DELIVERED` orders. |
+| Repeat Purchase Rate | Repeat Customers divided by unique customers with at least one `SHIPPED` or `DELIVERED` order. |
+| Average Orders per Customer | Count of `SHIPPED` and `DELIVERED` orders divided by unique customers with at least one such order. |
+
+Cancelled orders are excluded from sales and order KPIs. For returned orders, recognized gross profit is the negative shipping and packaging costs still incurred. Other order statuses use persisted `grossProfit`; no percentage-based revenue or cost estimates are substituted.
+
+The monthly repeat-purchase chart counts subsequent `SHIPPED`/`DELIVERED` orders per customer within the selected result set; it does not extrapolate a repeat-order count from the overall repeat-purchase rate.

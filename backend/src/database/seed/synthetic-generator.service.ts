@@ -548,7 +548,7 @@ export class SyntheticGeneratorService {
           netAmount = 0;
           grossProfit = 0;
           profitMarginPct = 0;
-        } else if (status === 'REFUNDED') {
+        } else if (status === 'REFUNDED' || status === 'RETURNED') {
           refundAmount = netAmount;
           netAmount = 0;
           grossProfit = -(shippingCost + orderPackaging); // Losses on dispatch & return
